@@ -1,31 +1,46 @@
 import { Parser } from '@dbml/core'
-import type { ParseResult } from '../types'
+import type { ParseResult, StickyNoteInfo } from '../types'
 
 export function parseDbml(source: string): ParseResult {
   try {
     const database = Parser.parse(source, 'dbml')
     const exported = database.export()
 
+    // Build table→group mapping from TableGroups
+    const groupMap = new Map<string, string>()
+    for (const schema of exported.schemas) {
+      const schemaName = schema.name || 'public'
+      for (const tg of (schema as any).tableGroups ?? []) {
+        for (const t of tg.tables ?? []) {
+          const tSchema = t.schemaName || schemaName
+          groupMap.set(`${tSchema}.${t.tableName}`, tg.name)
+        }
+      }
+    }
+
     const tables = exported.schemas.flatMap((schema) => {
       const schemaName = schema.name || 'public'
-      return schema.tables.map((table) => ({
-        id: `${schemaName}.${table.name}`,
-        schema: schemaName,
-        name: table.name,
-        columns: table.fields.map((field) => ({
-          name: field.name,
-          type: field.type?.type_name ?? String(field.type ?? ''),
-          isPrimaryKey: field.pk,
-          isForeignKey: false,
-          isNotNull: field.not_null,
-          isUnique: field.unique,
-          defaultValue: field.dbdefault != null ? String(field.dbdefault) : undefined,
-          note: field.note || undefined,
-        })),
-        headerColor: table.headerColor || undefined,
-        note: table.note || undefined,
-        group: undefined,
-      }))
+      return schema.tables.map((table) => {
+        const tableId = `${schemaName}.${table.name}`
+        return {
+          id: tableId,
+          schema: schemaName,
+          name: table.name,
+          columns: table.fields.map((field) => ({
+            name: field.name,
+            type: field.type?.type_name ?? String(field.type ?? ''),
+            isPrimaryKey: field.pk,
+            isForeignKey: false,
+            isNotNull: field.not_null,
+            isUnique: field.unique,
+            defaultValue: field.dbdefault != null ? String(field.dbdefault) : undefined,
+            note: field.note || undefined,
+          })),
+          headerColor: table.headerColor || undefined,
+          note: table.note || undefined,
+          group: groupMap.get(tableId),
+        }
+      })
     })
 
     const refs = exported.schemas.flatMap((schema) => {
@@ -81,9 +96,17 @@ export function parseDbml(source: string): ParseResult {
       }
     }
 
-    return { tables, refs, enums, errors: [] }
+    // Extract sticky notes
+    const stickyNotes: StickyNoteInfo[] = ((exported as any).notes ?? []).map((n: any, idx: number) => ({
+      id: `note-${idx}`,
+      name: n.name || '',
+      content: n.content || '',
+      headerColor: n.headerColor || undefined,
+    }))
+
+    return { tables, refs, enums, stickyNotes, errors: [] }
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
-    return { tables: [], refs: [], enums: [], errors: [message] }
+    return { tables: [], refs: [], enums: [], stickyNotes: [], errors: [message] }
   }
 }

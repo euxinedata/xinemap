@@ -1,19 +1,33 @@
 import { useCallback, useEffect } from 'react'
 import { ReactFlow, Controls, Background, BackgroundVariant, Panel } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
-import { useDiagramStore, type LayoutDirection } from '../store/useDiagramStore'
+import { useDiagramStore, type LayoutDirection, type ViewMode } from '../store/useDiagramStore'
 import { useEditorStore } from '../store/useEditorStore'
 import { parseResultToFlow } from '../parser/dbmlToFlow'
+import { parseResultToConceptualFlow } from '../parser/conceptualToFlow'
 import { layoutNodes } from './layoutEngine'
 import { TableNode } from './TableNode'
 import { EnumNode } from './EnumNode'
 import { EREdge } from './EREdge'
+import { HubNode } from './conceptual/HubNode'
+import { SatelliteNode } from './conceptual/SatelliteNode'
+import { LinkNode } from './conceptual/LinkNode'
+import { NoteNode } from './conceptual/NoteNode'
+import { ConceptNode } from './conceptual/ConceptNode'
 
-const nodeTypes = { tableNode: TableNode, enumNode: EnumNode }
+const nodeTypes = {
+  tableNode: TableNode,
+  enumNode: EnumNode,
+  hubNode: HubNode,
+  satelliteNode: SatelliteNode,
+  linkNode: LinkNode,
+  noteNode: NoteNode,
+  conceptNode: ConceptNode,
+}
 const edgeTypes = { erEdge: EREdge }
 
 export function DiagramPanel() {
-  const { nodes, edges, setNodes, setEdges, onNodesChange, onEdgesChange, layoutDirection, setLayoutDirection } = useDiagramStore()
+  const { nodes, edges, setNodes, setEdges, onNodesChange, onEdgesChange, layoutDirection, setLayoutDirection, viewMode, setViewMode } = useDiagramStore()
   const parseResult = useEditorStore((s) => s.parseResult)
 
   useEffect(() => {
@@ -22,11 +36,12 @@ export function DiagramPanel() {
       setEdges([])
       return
     }
-    const { nodes: flowNodes, edges: flowEdges } = parseResultToFlow(parseResult)
+    const convert = viewMode === 'conceptual' ? parseResultToConceptualFlow : parseResultToFlow
+    const { nodes: flowNodes, edges: flowEdges } = convert(parseResult)
     const laid = layoutNodes(flowNodes, flowEdges, layoutDirection)
     setNodes(laid)
     setEdges(flowEdges)
-  }, [parseResult, layoutDirection, setNodes, setEdges])
+  }, [parseResult, layoutDirection, viewMode, setNodes, setEdges])
 
   const handleAutoLayout = useCallback(() => {
     if (nodes.length === 0) return
@@ -38,6 +53,11 @@ export function DiagramPanel() {
     const next: LayoutDirection = layoutDirection === 'LR' ? 'TB' : 'LR'
     setLayoutDirection(next)
   }, [layoutDirection, setLayoutDirection])
+
+  const toggleView = useCallback(() => {
+    const next: ViewMode = viewMode === 'relational' ? 'conceptual' : 'relational'
+    setViewMode(next)
+  }, [viewMode, setViewMode])
 
   return (
     <div className="h-full bg-gray-950">
@@ -64,6 +84,12 @@ export function DiagramPanel() {
             className="bg-gray-800 border border-gray-600 text-gray-400 hover:text-gray-200 text-xs px-2 py-1 rounded"
           >
             {layoutDirection === 'LR' ? 'Horizontal' : 'Vertical'}
+          </button>
+          <button
+            onClick={toggleView}
+            className="bg-gray-800 border border-gray-600 text-gray-400 hover:text-gray-200 text-xs px-2 py-1 rounded"
+          >
+            {viewMode === 'relational' ? 'Relational' : 'Conceptual'}
           </button>
         </Panel>
       </ReactFlow>

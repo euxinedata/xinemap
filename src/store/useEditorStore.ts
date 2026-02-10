@@ -1,47 +1,66 @@
 import { create } from 'zustand'
 import type { ParseResult } from '../types'
 
-export const DEFAULT_DBML = `// Sample DBML schema
-Table users {
-  id integer [pk, increment]
-  username varchar [not null, unique]
-  email varchar [not null, unique]
-  created_at timestamp [default: \`now()\`]
-  role user_role [not null]
+export const DEFAULT_DBML = `// Data Vault 2.0 — conceptual + relational views
+// Toggle "Conceptual" / "Relational" in the diagram panel
+
+TableGroup hubs {
+  Customer
+  Card
 }
 
-Table posts {
-  id integer [pk, increment]
-  title varchar [not null]
-  body text
-  status post_status
-  user_id integer [not null]
-  created_at timestamp [default: \`now()\`]
+TableGroup satellites {
+  CustomerPII
+  CardDetails
 }
 
-Table comments {
-  id integer [pk, increment]
-  body text [not null]
-  post_id integer [not null]
-  user_id integer [not null]
-  created_at timestamp [default: \`now()\`]
+TableGroup links {
+  CustomerCard
 }
 
-Enum user_role {
-  admin
-  editor
-  viewer
+Table Customer {
+  hk_customer binary [pk, note: 'hash key']
+  load_date timestamp [not null]
+  record_source varchar [not null]
+  customer_id integer [not null]
 }
 
-Enum post_status {
-  draft
-  published
-  archived
+Table Card {
+  hk_card binary [pk, note: 'hash key']
+  load_date timestamp [not null]
+  record_source varchar [not null]
+  card_number varchar [not null]
 }
 
-Ref: posts.user_id > users.id
-Ref: comments.post_id > posts.id
-Ref: comments.user_id > users.id
+Table CustomerPII {
+  hk_customer binary [pk]
+  load_date timestamp [pk]
+  hash_diff binary [not null]
+  first_name varchar
+  last_name varchar
+  email varchar
+}
+
+Table CardDetails {
+  hk_card binary [pk]
+  load_date timestamp [pk]
+  hash_diff binary [not null]
+  card_type varchar
+  expiry_date date
+}
+
+Table CustomerCard {
+  hk_customer_card binary [pk, note: 'hash key']
+  hk_customer binary [not null]
+  hk_card binary [not null]
+  load_date timestamp [not null]
+  record_source varchar [not null]
+}
+
+Ref: CustomerPII.hk_customer > Customer.hk_customer
+Ref: CardDetails.hk_card > Card.hk_card
+Ref: CustomerCard.hk_customer > Customer.hk_customer
+Ref: CustomerCard.hk_card > Card.hk_card
 `
 
 interface EditorState {

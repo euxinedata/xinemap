@@ -36,10 +36,18 @@ export interface EnumInfo {
   values: { name: string; note?: string }[]
 }
 
+export interface StickyNoteInfo {
+  id: string
+  name: string
+  content: string
+  headerColor?: string
+}
+
 export interface ParseResult {
   tables: TableInfo[]
   refs: RefInfo[]
   enums: EnumInfo[]
+  stickyNotes: StickyNoteInfo[]
   errors: string[]
 }
 

@@ -7,8 +7,10 @@ import { parseResultToFlow } from '../parser/dbmlToFlow'
 import { layoutNodes } from './layoutEngine'
 import { TableNode } from './TableNode'
 import { EnumNode } from './EnumNode'
+import { EREdge } from './EREdge'
 
 const nodeTypes = { tableNode: TableNode, enumNode: EnumNode }
+const edgeTypes = { erEdge: EREdge }
 
 export function DiagramPanel() {
   const { nodes, edges, setNodes, setEdges, onNodesChange, onEdgesChange, layoutDirection, setLayoutDirection } = useDiagramStore()
@@ -43,6 +45,7 @@ export function DiagramPanel() {
         nodes={nodes}
         edges={edges}
         nodeTypes={nodeTypes}
+        edgeTypes={edgeTypes}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         fitView

@@ -1,11 +1,11 @@
 import type { Node, Edge } from '@xyflow/react'
-import type { ParseResult } from '../types'
+import type { ParseResult, RefInfo } from '../types'
 
-const CARDINALITY_LABELS: Record<string, string> = {
-  '1-1': '1 - 1',
-  '1-n': '1 - *',
-  'n-1': '* - 1',
-  'n-n': '* - *',
+const cardinalityMap: Record<RefInfo['type'], [string, string]> = {
+  '1-1': ['1', '1'],
+  '1-n': ['1', '*'],
+  'n-1': ['*', '1'],
+  'n-n': ['*', '*'],
 }
 
 export function parseResultToFlow(result: ParseResult): { nodes: Node[]; edges: Edge[] } {
@@ -32,16 +32,16 @@ export function parseResultToFlow(result: ParseResult): { nodes: Node[]; edges: 
 
   for (const ref of result.refs) {
     const strokeColor = ref.color ?? '#6b7280'
+    const [srcCard, tgtCard] = cardinalityMap[ref.type]
     edges.push({
       id: ref.id,
       source: ref.fromTable,
       target: ref.toTable,
       sourceHandle: `${ref.fromTable}.${ref.fromColumns[0]}-source`,
       targetHandle: `${ref.toTable}.${ref.toColumns[0]}-target`,
-      type: 'smoothstep',
-      label: CARDINALITY_LABELS[ref.type] ?? ref.type,
+      type: 'erEdge',
       style: { stroke: strokeColor },
-      labelStyle: { fill: '#9ca3af', fontSize: 11 },
+      data: { sourceCardinality: srcCard, targetCardinality: tgtCard },
     })
   }
 

@@ -30,6 +30,15 @@ export function parseResultToFlow(result: ParseResult): { nodes: Node[]; edges: 
     })
   }
 
+  for (const note of result.stickyNotes) {
+    nodes.push({
+      id: note.id,
+      type: 'noteNode',
+      position: { x: 0, y: 0 },
+      data: { label: note.name, content: note.content },
+    })
+  }
+
   for (const ref of result.refs) {
     const strokeColor = ref.color ?? '#6b7280'
     const [srcCard, tgtCard] = cardinalityMap[ref.type]

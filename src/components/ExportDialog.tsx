@@ -2,10 +2,12 @@ import { useState } from 'react'
 import { exportSql } from '../parser/exportSql'
 import type { SqlDialect } from '../parser/exportSql'
 import { exportDiagramPng } from '../export/exportPng'
+import { exportSnowflakeDDL } from '../export/exportSnowflake'
 import { useEditorStore } from '../store/useEditorStore'
 import { useDiagramStore } from '../store/useDiagramStore'
 
 const DIALECTS: { label: string; value: SqlDialect }[] = [
+  { label: 'Snowflake', value: 'snowflake' },
   { label: 'PostgreSQL', value: 'postgres' },
   { label: 'MySQL', value: 'mysql' },
   { label: 'MSSQL', value: 'mssql' },
@@ -18,8 +20,8 @@ interface ExportDialogProps {
 }
 
 export function ExportDialog({ isOpen, onClose }: ExportDialogProps) {
-  const [tab, setTab] = useState<'sql' | 'png'>('sql')
-  const [dialect, setDialect] = useState<SqlDialect>('postgres')
+  const [tab, setTab] = useState<'sql' | 'png' | 'dbml'>('sql')
+  const [dialect, setDialect] = useState<SqlDialect>('snowflake')
   const [ddl, setDdl] = useState('')
   const [error, setError] = useState('')
   const [copied, setCopied] = useState(false)
@@ -33,8 +35,16 @@ export function ExportDialog({ isOpen, onClose }: ExportDialogProps) {
     setError('')
     setDdl('')
     try {
-      const result = exportSql(dbml, dialect)
-      setDdl(result)
+      if (dialect === 'snowflake') {
+        const result = useEditorStore.getState().parseResult
+        if (!result) {
+          setError('No parsed model available')
+          return
+        }
+        setDdl(exportSnowflakeDDL(result))
+      } else {
+        setDdl(exportSql(dbml, dialect))
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Export failed')
     }
@@ -99,6 +109,16 @@ export function ExportDialog({ isOpen, onClose }: ExportDialogProps) {
           >
             PNG
           </button>
+          <button
+            onClick={() => setTab('dbml')}
+            className={`px-4 py-2 text-xs font-medium ${
+              tab === 'dbml'
+                ? 'text-gray-200 border-b-2 border-blue-500'
+                : 'text-gray-500 hover:text-gray-300'
+            }`}
+          >
+            DBML
+          </button>
         </div>
 
         {/* Content */}
@@ -153,6 +173,30 @@ export function ExportDialog({ isOpen, onClose }: ExportDialogProps) {
               >
                 Export PNG
               </button>
+            </div>
+          )}
+
+          {tab === 'dbml' && (
+            <div className="flex flex-col gap-3">
+              <button
+                onClick={() => {
+                  const blob = new Blob([dbml], { type: 'text/plain' })
+                  const url = URL.createObjectURL(blob)
+                  const a = document.createElement('a')
+                  a.href = url
+                  a.download = 'model.dbml'
+                  a.click()
+                  URL.revokeObjectURL(url)
+                }}
+                className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium px-3 py-1.5 rounded self-start"
+              >
+                Download .dbml
+              </button>
+              <textarea
+                readOnly
+                value={dbml}
+                className="bg-gray-900 border border-gray-700 text-gray-300 text-xs font-mono rounded p-3 h-64 resize-none focus:outline-none"
+              />
             </div>
           )}
         </div>

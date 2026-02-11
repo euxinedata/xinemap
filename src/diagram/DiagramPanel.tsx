@@ -14,6 +14,7 @@ import { SatelliteNode } from './conceptual/SatelliteNode'
 import { LinkNode } from './conceptual/LinkNode'
 import { NoteNode } from './conceptual/NoteNode'
 import { ConceptNode } from './conceptual/ConceptNode'
+import { CommandPalette } from '../components/CommandPalette'
 
 const nodeTypes = {
   tableNode: TableNode,
@@ -92,6 +93,7 @@ export function DiagramPanel() {
             {viewMode === 'relational' ? 'Relational' : 'Conceptual'}
           </button>
         </Panel>
+        <CommandPalette />
       </ReactFlow>
     </div>
   )

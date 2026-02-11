@@ -10,46 +10,60 @@ export function FileDialog({ isOpen, onClose }: FileDialogProps) {
   const {
     currentProjectId,
     projects,
+    commitHistory,
     loadProjectList,
     saveCurrentProject,
     openProject,
     deleteProject,
+    loadHistory,
+    restoreCommit,
   } = useProjectStore()
 
   const [saveName, setSaveName] = useState('')
+  const [showHistory, setShowHistory] = useState(false)
 
   useEffect(() => {
     if (isOpen) {
       loadProjectList()
       setSaveName('')
+      setShowHistory(false)
     }
   }, [isOpen, loadProjectList])
+
+  useEffect(() => {
+    if (showHistory && currentProjectId) loadHistory()
+  }, [showHistory, currentProjectId, loadHistory])
 
   if (!isOpen) return null
 
   const currentProject = projects.find((p) => p.id === currentProjectId)
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const name = saveName.trim()
     if (!name) return
-    saveCurrentProject(name)
+    await saveCurrentProject(name)
     onClose()
   }
 
-  const handleUpdate = () => {
+  const handleUpdate = async () => {
     if (!currentProject) return
-    saveCurrentProject(currentProject.name)
+    await saveCurrentProject(currentProject.name)
     onClose()
   }
 
-  const handleOpen = (id: string) => {
-    openProject(id)
+  const handleOpen = async (id: string) => {
+    await openProject(id)
     onClose()
   }
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (!window.confirm('Delete this project?')) return
-    deleteProject(id)
+    await deleteProject(id)
+  }
+
+  const handleRestore = async (oid: string) => {
+    await restoreCommit(oid)
+    onClose()
   }
 
   const formatDate = (ts: number) => {
@@ -60,6 +74,17 @@ export function FileDialog({ isOpen, onClose }: FileDialogProps) {
       hour: '2-digit',
       minute: '2-digit',
     })
+  }
+
+  const relativeTime = (ts: number) => {
+    const diff = Date.now() - ts
+    const mins = Math.floor(diff / 60000)
+    if (mins < 1) return 'just now'
+    if (mins < 60) return `${mins}m ago`
+    const hours = Math.floor(mins / 60)
+    if (hours < 24) return `${hours}h ago`
+    const days = Math.floor(hours / 24)
+    return `${days}d ago`
   }
 
   return (
@@ -73,7 +98,21 @@ export function FileDialog({ isOpen, onClose }: FileDialogProps) {
       >
         {/* Header */}
         <div className="flex items-center justify-between border-b border-gray-700 px-4 py-3">
-          <h2 className="text-sm font-semibold text-gray-200">Projects</h2>
+          <div className="flex items-center gap-3">
+            <h2 className="text-sm font-semibold text-gray-200">Projects</h2>
+            {currentProject && (
+              <button
+                onClick={() => setShowHistory(!showHistory)}
+                className={`text-xs px-2 py-0.5 rounded ${
+                  showHistory
+                    ? 'bg-blue-600 text-white'
+                    : 'text-gray-400 hover:text-gray-200 bg-gray-700'
+                }`}
+              >
+                History
+              </button>
+            )}
+          </div>
           <button
             onClick={onClose}
             className="text-gray-400 hover:text-gray-200 text-sm"
@@ -82,51 +121,84 @@ export function FileDialog({ isOpen, onClose }: FileDialogProps) {
           </button>
         </div>
 
-        {/* Project list */}
-        <div className="max-h-64 overflow-y-auto px-4 py-2">
-          {projects.length === 0 ? (
-            <p className="py-4 text-center text-sm text-gray-500">
-              No saved projects
-            </p>
-          ) : (
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-left text-gray-500">
-                  <th className="pb-1 font-medium">Name</th>
-                  <th className="pb-1 font-medium">Modified</th>
-                  <th className="pb-1 font-medium"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {projects.map((p) => (
-                  <tr
-                    key={p.id}
-                    className="border-t border-gray-700/50 text-gray-300"
+        {showHistory ? (
+          /* Version history */
+          <div className="max-h-72 overflow-y-auto px-4 py-2">
+            {commitHistory.length === 0 ? (
+              <p className="py-4 text-center text-sm text-gray-500">No history</p>
+            ) : (
+              <div className="flex flex-col gap-1">
+                {commitHistory.map((c, i) => (
+                  <div
+                    key={c.oid}
+                    className="flex items-center justify-between py-1.5 border-b border-gray-700/50 last:border-0"
                   >
-                    <td className="py-1.5">{p.name}</td>
-                    <td className="py-1.5 text-gray-400">
-                      {formatDate(p.updatedAt)}
-                    </td>
-                    <td className="py-1.5 text-right space-x-2">
+                    <div className="flex flex-col min-w-0">
+                      <span className="text-sm text-gray-300 truncate">{c.message}</span>
+                      <span className="text-[11px] text-gray-500">
+                        {relativeTime(c.timestamp)} — {c.oid.slice(0, 7)}
+                      </span>
+                    </div>
+                    {i > 0 && (
                       <button
-                        onClick={() => handleOpen(p.id)}
-                        className="text-blue-400 hover:text-blue-300"
+                        onClick={() => handleRestore(c.oid)}
+                        className="text-xs text-blue-400 hover:text-blue-300 ml-2 shrink-0"
                       >
-                        Open
+                        Restore
                       </button>
-                      <button
-                        onClick={() => handleDelete(p.id)}
-                        className="text-red-400 hover:text-red-300"
-                      >
-                        Delete
-                      </button>
-                    </td>
-                  </tr>
+                    )}
+                  </div>
                 ))}
-              </tbody>
-            </table>
-          )}
-        </div>
+              </div>
+            )}
+          </div>
+        ) : (
+          /* Project list */
+          <div className="max-h-64 overflow-y-auto px-4 py-2">
+            {projects.length === 0 ? (
+              <p className="py-4 text-center text-sm text-gray-500">
+                No saved projects
+              </p>
+            ) : (
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-left text-gray-500">
+                    <th className="pb-1 font-medium">Name</th>
+                    <th className="pb-1 font-medium">Modified</th>
+                    <th className="pb-1 font-medium"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {projects.map((p) => (
+                    <tr
+                      key={p.id}
+                      className="border-t border-gray-700/50 text-gray-300"
+                    >
+                      <td className="py-1.5">{p.name}</td>
+                      <td className="py-1.5 text-gray-400">
+                        {formatDate(p.updatedAt)}
+                      </td>
+                      <td className="py-1.5 text-right space-x-2">
+                        <button
+                          onClick={() => handleOpen(p.id)}
+                          className="text-blue-400 hover:text-blue-300"
+                        >
+                          Open
+                        </button>
+                        <button
+                          onClick={() => handleDelete(p.id)}
+                          className="text-red-400 hover:text-red-300"
+                        >
+                          Delete
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        )}
 
         {/* Save section */}
         <div className="border-t border-gray-700 px-4 py-3">

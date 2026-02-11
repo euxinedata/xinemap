@@ -1,5 +1,5 @@
 import { Parser } from '@dbml/core'
-import type { ParseResult, StickyNoteInfo } from '../types'
+import type { ParseResult, StickyNoteInfo, DV2Metadata, DV2EntityType, ProjectMeta } from '../types'
 
 export function parseDbml(source: string): ParseResult {
   try {
@@ -104,9 +104,56 @@ export function parseDbml(source: string): ParseResult {
       headerColor: n.headerColor || undefined,
     }))
 
-    return { tables, refs, enums, stickyNotes, errors: [] }
+    // Build DV2 metadata from groups and refs
+    const dv2Metadata = new Map<string, DV2Metadata>()
+    for (const table of tables) {
+      const group = table.group?.toLowerCase() ?? ''
+      let entityType: DV2EntityType = 'reference'
+      if (group.startsWith('hub')) entityType = 'hub'
+      else if (group.startsWith('sat')) entityType = 'satellite'
+      else if (group.startsWith('link')) entityType = 'link'
+
+      const parentHubs: string[] = []
+      const linkedHubs: string[] = []
+
+      if (entityType === 'satellite') {
+        for (const ref of refs) {
+          if (ref.fromTable === table.id) {
+            const target = tables.find((t) => t.id === ref.toTable)
+            if (target) {
+              const tg = target.group?.toLowerCase() ?? ''
+              if (tg.startsWith('hub') || tg.startsWith('link')) parentHubs.push(target.id)
+            }
+          }
+        }
+      } else if (entityType === 'link') {
+        for (const ref of refs) {
+          if (ref.fromTable === table.id) {
+            const target = tables.find((t) => t.id === ref.toTable)
+            if (target && (target.group?.toLowerCase() ?? '').startsWith('hub')) {
+              linkedHubs.push(target.id)
+            }
+          }
+        }
+      }
+
+      dv2Metadata.set(table.id, { entityType, parentHubs, linkedHubs })
+    }
+
+    // Extract project metadata
+    const proj = (exported as any).project
+    const projectMeta: ProjectMeta | null = proj ? {
+      name: proj.name || undefined,
+      databaseType: proj.database_type || undefined,
+      note: proj.note || undefined,
+    } : null
+
+    return { tables, refs, enums, stickyNotes, errors: [], projectMeta, dv2Metadata }
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err)
-    return { tables: [], refs: [], enums: [], stickyNotes: [], errors: [message] }
+    const diags = (err as any)?.diags
+    const message = Array.isArray(diags) && diags.length > 0
+      ? diags.map((d: any) => d.message).join('; ')
+      : (err as any)?.message ?? String(err)
+    return { tables: [], refs: [], enums: [], stickyNotes: [], errors: [message], projectMeta: null, dv2Metadata: new Map() }
   }
 }

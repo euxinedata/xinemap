@@ -43,12 +43,71 @@ export interface StickyNoteInfo {
   headerColor?: string
 }
 
+// --- DV2.0 Entity Classification ---
+
+export type DV2EntityType = 'hub' | 'satellite' | 'link' | 'reference'
+
+export interface DV2Metadata {
+  entityType: DV2EntityType
+  parentHubs: string[]
+  linkedHubs: string[]
+}
+
+// --- Validation ---
+
+export type ValidationSeverity = 'error' | 'warning' | 'info'
+
+export interface ValidationIssue {
+  severity: ValidationSeverity
+  rule: string
+  message: string
+  tableId?: string
+  columnName?: string
+}
+
+export interface ModelStats {
+  hubCount: number
+  satelliteCount: number
+  linkCount: number
+  otherCount: number
+  totalColumns: number
+  orphanHubs: string[]
+  orphanSatellites: string[]
+  hubToSatRatio: number
+}
+
+export interface ValidationResult {
+  issues: ValidationIssue[]
+  stats: ModelStats
+}
+
+// --- Project Metadata ---
+
+export interface ProjectMeta {
+  name?: string
+  databaseType?: string
+  note?: string
+}
+
+// --- Search ---
+
+export interface SearchMatch {
+  type: 'table' | 'column' | 'note'
+  tableId: string
+  columnName?: string
+  matchText: string
+}
+
+// --- Parse Result ---
+
 export interface ParseResult {
   tables: TableInfo[]
   refs: RefInfo[]
   enums: EnumInfo[]
   stickyNotes: StickyNoteInfo[]
   errors: string[]
+  projectMeta: ProjectMeta | null
+  dv2Metadata: Map<string, DV2Metadata>
 }
 
 export interface SavedProject {
@@ -56,4 +115,12 @@ export interface SavedProject {
   name: string
   dbml: string
   updatedAt: number
+}
+
+// --- Version History ---
+
+export interface CommitInfo {
+  oid: string
+  message: string
+  timestamp: number
 }

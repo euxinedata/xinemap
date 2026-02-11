@@ -61,6 +61,10 @@ export function EditorPanel() {
         wordWrap: 'on',
         automaticLayout: true,
         scrollBeyondLastLine: false,
+        quickSuggestions: false,
+        acceptSuggestionOnCommitCharacter: false,
+        suggestOnTriggerCharacters: false,
+        wordBasedSuggestions: 'off',
       }}
     />
   )

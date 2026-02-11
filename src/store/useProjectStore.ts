@@ -1,61 +1,83 @@
 import { create } from 'zustand'
-import type { SavedProject } from '../types'
-import * as storage from '../persistence/localStorage'
-import { useEditorStore, DEFAULT_DBML } from './useEditorStore'
+import type { SavedProject, CommitInfo } from '../types'
+import * as storage from '../persistence/gitStorage'
+import { useEditorStore } from './useEditorStore'
 
 interface ProjectState {
   currentProjectId: string | null
   projects: SavedProject[]
-  loadProjectList: () => void
-  saveCurrentProject: (name: string) => void
-  openProject: (id: string) => void
-  deleteProject: (id: string) => void
+  commitHistory: CommitInfo[]
+  loadProjectList: () => Promise<void>
+  saveCurrentProject: (name: string) => Promise<void>
+  openProject: (id: string) => Promise<void>
+  deleteProject: (id: string) => Promise<void>
   newProject: () => void
+  loadHistory: () => Promise<void>
+  restoreCommit: (oid: string) => Promise<void>
 }
 
 export const useProjectStore = create<ProjectState>()((set) => ({
   currentProjectId: null,
   projects: [],
+  commitHistory: [],
 
-  loadProjectList: () => {
-    set({ projects: storage.listProjects() })
+  loadProjectList: async () => {
+    await storage.migrateFromLocalStorage()
+    const projects = await storage.listProjects()
+    set({ projects })
   },
 
-  saveCurrentProject: (name: string) => {
+  saveCurrentProject: async (name: string) => {
     const dbml = useEditorStore.getState().dbml
     const state = useProjectStore.getState()
-    const existing = state.currentProjectId
-      ? storage.getProject(state.currentProjectId)
-      : null
+    const id = state.currentProjectId ?? crypto.randomUUID()
 
-    const project: SavedProject = {
-      id: existing?.id ?? crypto.randomUUID(),
-      name,
-      dbml,
-      updatedAt: Date.now(),
-    }
+    const project: SavedProject = { id, name, dbml, updatedAt: Date.now() }
+    await storage.saveProject(project)
 
-    storage.saveProject(project)
-    set({ currentProjectId: project.id, projects: storage.listProjects() })
+    const projects = await storage.listProjects()
+    const history = await storage.getHistory(id)
+    set({ currentProjectId: id, projects, commitHistory: history })
   },
 
-  openProject: (id: string) => {
-    const project = storage.getProject(id)
+  openProject: async (id: string) => {
+    const project = await storage.getProject(id)
     if (!project) return
     useEditorStore.getState().setDbml(project.dbml)
-    set({ currentProjectId: id })
+    const history = await storage.getHistory(id)
+    set({ currentProjectId: id, commitHistory: history })
   },
 
-  deleteProject: (id: string) => {
-    storage.deleteProject(id)
+  deleteProject: async (id: string) => {
+    await storage.deleteProject(id)
+    const projects = await storage.listProjects()
     set((state) => ({
-      projects: storage.listProjects(),
+      projects,
       currentProjectId: state.currentProjectId === id ? null : state.currentProjectId,
+      commitHistory: state.currentProjectId === id ? [] : state.commitHistory,
     }))
   },
 
   newProject: () => {
-    useEditorStore.getState().setDbml(DEFAULT_DBML)
-    set({ currentProjectId: null })
+    useEditorStore.getState().setDbml('')
+    set({ currentProjectId: null, commitHistory: [] })
+  },
+
+  loadHistory: async () => {
+    const id = useProjectStore.getState().currentProjectId
+    if (!id) return
+    const history = await storage.getHistory(id)
+    set({ commitHistory: history })
+  },
+
+  restoreCommit: async (oid: string) => {
+    const id = useProjectStore.getState().currentProjectId
+    if (!id) return
+    const content = await storage.getCommitContent(id, oid)
+    if (!content) return
+    useEditorStore.getState().setDbml(content)
+    await storage.restoreCommit(id, oid)
+    const history = await storage.getHistory(id)
+    set({ commitHistory: history })
   },
 }))

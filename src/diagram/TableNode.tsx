@@ -10,21 +10,22 @@ function TableNodeComponent({ data, id }: NodeProps) {
   const schemaPrefix = table.schema && table.schema !== 'public' ? `${table.schema}.` : ''
 
   return (
-    <div className="rounded-md border border-gray-600 bg-gray-800 text-xs min-w-[180px] shadow-lg">
+    <div className="rounded-md border border-[var(--c-border-s)] bg-[var(--c-bg-3)] text-xs min-w-[180px] shadow-lg">
       <div
         className="px-3 py-2 font-semibold text-white rounded-t-md"
         style={{ backgroundColor: headerColor }}
       >
         {schemaPrefix}{table.name}
       </div>
-      <div className="divide-y divide-gray-700">
+      <div className="divide-y divide-[var(--c-divide)]">
         {table.columns.map((col) => (
-          <div key={col.name} className="relative px-3 py-1.5 flex items-center justify-between gap-3 text-gray-300">
+          <div key={col.name} className="relative px-3 py-1.5 flex items-center justify-between gap-3 text-[var(--c-text-2)]">
             <Handle
               type="target"
               position={Position.Left}
               id={`${id}.${col.name}-target`}
-              className="!w-2 !h-2 !bg-gray-500 !border-gray-400"
+              className="!w-2 !h-2"
+              style={{ background: 'var(--c-edge)' }}
             />
             <span className="flex items-center gap-1.5">
               <span>{col.name}</span>
@@ -35,12 +36,13 @@ function TableNodeComponent({ data, id }: NodeProps) {
                 <span className="text-[9px] px-1 rounded bg-blue-700 text-blue-200 font-bold">FK</span>
               )}
             </span>
-            <span className="text-gray-500">{col.type}</span>
+            <span className="text-[var(--c-text-4)]">{col.type}</span>
             <Handle
               type="source"
               position={Position.Right}
               id={`${id}.${col.name}-source`}
-              className="!w-2 !h-2 !bg-gray-500 !border-gray-400"
+              className="!w-2 !h-2"
+              style={{ background: 'var(--c-edge)' }}
             />
           </div>
         ))}

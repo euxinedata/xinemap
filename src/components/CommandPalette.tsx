@@ -147,7 +147,7 @@ export function CommandPalette() {
   return (
     <div className="fixed inset-0 bg-black/40 z-40 flex items-start justify-center pt-[20vh]" onClick={close}>
       <div
-        className="w-[480px] bg-gray-900 border border-gray-600 rounded-lg shadow-2xl z-50"
+        className="w-[480px] bg-[var(--c-bg-1)] border border-[var(--c-border-s)] rounded-lg shadow-2xl z-50"
         onClick={(e) => e.stopPropagation()}
       >
         <input
@@ -156,13 +156,13 @@ export function CommandPalette() {
           onChange={(e) => { setQuery(e.target.value); setSelectedIndex(0) }}
           onKeyDown={handleKeyDown}
           placeholder="Search entities or scaffold new..."
-          className="w-full px-4 py-3 text-sm text-gray-200 bg-transparent border-b border-gray-700 outline-none placeholder-gray-500"
+          className="w-full px-4 py-3 text-sm text-[var(--c-text-1)] bg-transparent border-b border-[var(--c-border)] outline-none placeholder-[var(--c-text-4)]"
         />
         <div className="max-h-[320px] overflow-y-auto">
           {scaffoldCmd && (
             <div
               className={`px-4 py-2 text-sm cursor-pointer flex items-center gap-2 ${
-                selectedIndex === 0 ? 'bg-gray-800 text-gray-200' : 'text-gray-400'
+                selectedIndex === 0 ? 'bg-[var(--c-bg-3)] text-[var(--c-text-1)]' : 'text-[var(--c-text-3)]'
               }`}
               onClick={() => handleSelect(0)}
             >
@@ -174,17 +174,17 @@ export function CommandPalette() {
             <div
               key={`${match.tableId}-${match.columnName ?? ''}-${i}`}
               className={`px-4 py-2 text-sm cursor-pointer flex items-center gap-2 ${
-                i === selectedIndex ? 'bg-gray-800 text-gray-200' : 'text-gray-400'
+                i === selectedIndex ? 'bg-[var(--c-bg-3)] text-[var(--c-text-1)]' : 'text-[var(--c-text-3)]'
               }`}
               onClick={() => handleSelect(i)}
             >
               <span className={`w-2 h-2 rounded-full ${typeColor(match.type)} shrink-0`} />
               <span className="truncate">{match.matchText}</span>
-              <span className="ml-auto text-[10px] text-gray-600">{match.type}</span>
+              <span className="ml-auto text-[10px] text-[var(--c-text-4)]">{match.type}</span>
             </div>
           ))}
           {!scaffoldCmd && query && searchResults.length === 0 && (
-            <div className="px-4 py-3 text-sm text-gray-600">No results</div>
+            <div className="px-4 py-3 text-sm text-[var(--c-text-4)]">No results</div>
           )}
         </div>
       </div>

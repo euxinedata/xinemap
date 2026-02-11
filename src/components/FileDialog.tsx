@@ -93,20 +93,20 @@ export function FileDialog({ isOpen, onClose }: FileDialogProps) {
       onClick={onClose}
     >
       <div
-        className="w-full max-w-lg rounded border border-gray-700 bg-gray-800 shadow-xl"
+        className="w-full max-w-lg rounded border border-[var(--c-border)] bg-[var(--c-bg-3)] shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-gray-700 px-4 py-3">
+        <div className="flex items-center justify-between border-b border-[var(--c-border)] px-4 py-3">
           <div className="flex items-center gap-3">
-            <h2 className="text-sm font-semibold text-gray-200">Projects</h2>
+            <h2 className="text-sm font-semibold text-[var(--c-text-1)]">Projects</h2>
             {currentProject && (
               <button
                 onClick={() => setShowHistory(!showHistory)}
                 className={`text-xs px-2 py-0.5 rounded ${
                   showHistory
                     ? 'bg-blue-600 text-white'
-                    : 'text-gray-400 hover:text-gray-200 bg-gray-700'
+                    : 'text-[var(--c-text-3)] hover:text-[var(--c-text-1)] bg-[var(--c-bg-hover)]'
                 }`}
               >
                 History
@@ -115,7 +115,7 @@ export function FileDialog({ isOpen, onClose }: FileDialogProps) {
           </div>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-200 text-sm"
+            className="text-[var(--c-text-3)] hover:text-[var(--c-text-1)] text-sm"
           >
             Close
           </button>
@@ -125,17 +125,17 @@ export function FileDialog({ isOpen, onClose }: FileDialogProps) {
           /* Version history */
           <div className="max-h-72 overflow-y-auto px-4 py-2">
             {commitHistory.length === 0 ? (
-              <p className="py-4 text-center text-sm text-gray-500">No history</p>
+              <p className="py-4 text-center text-sm text-[var(--c-text-4)]">No history</p>
             ) : (
               <div className="flex flex-col gap-1">
                 {commitHistory.map((c, i) => (
                   <div
                     key={c.oid}
-                    className="flex items-center justify-between py-1.5 border-b border-gray-700/50 last:border-0"
+                    className="flex items-center justify-between py-1.5 border-b border-[var(--c-border)]/50 last:border-0"
                   >
                     <div className="flex flex-col min-w-0">
-                      <span className="text-sm text-gray-300 truncate">{c.message}</span>
-                      <span className="text-[11px] text-gray-500">
+                      <span className="text-sm text-[var(--c-text-2)] truncate">{c.message}</span>
+                      <span className="text-[11px] text-[var(--c-text-4)]">
                         {relativeTime(c.timestamp)} — {c.oid.slice(0, 7)}
                       </span>
                     </div>
@@ -156,13 +156,13 @@ export function FileDialog({ isOpen, onClose }: FileDialogProps) {
           /* Project list */
           <div className="max-h-64 overflow-y-auto px-4 py-2">
             {projects.length === 0 ? (
-              <p className="py-4 text-center text-sm text-gray-500">
+              <p className="py-4 text-center text-sm text-[var(--c-text-4)]">
                 No saved projects
               </p>
             ) : (
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="text-left text-gray-500">
+                  <tr className="text-left text-[var(--c-text-4)]">
                     <th className="pb-1 font-medium">Name</th>
                     <th className="pb-1 font-medium">Modified</th>
                     <th className="pb-1 font-medium"></th>
@@ -172,10 +172,10 @@ export function FileDialog({ isOpen, onClose }: FileDialogProps) {
                   {projects.map((p) => (
                     <tr
                       key={p.id}
-                      className="border-t border-gray-700/50 text-gray-300"
+                      className="border-t border-[var(--c-border)]/50 text-[var(--c-text-2)]"
                     >
                       <td className="py-1.5">{p.name}</td>
-                      <td className="py-1.5 text-gray-400">
+                      <td className="py-1.5 text-[var(--c-text-3)]">
                         {formatDate(p.updatedAt)}
                       </td>
                       <td className="py-1.5 text-right space-x-2">
@@ -201,7 +201,7 @@ export function FileDialog({ isOpen, onClose }: FileDialogProps) {
         )}
 
         {/* Save section */}
-        <div className="border-t border-gray-700 px-4 py-3">
+        <div className="border-t border-[var(--c-border)] px-4 py-3">
           <div className="flex items-center gap-2">
             <input
               type="text"
@@ -209,7 +209,7 @@ export function FileDialog({ isOpen, onClose }: FileDialogProps) {
               onChange={(e) => setSaveName(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSave()}
               placeholder="Project name"
-              className="flex-1 rounded border border-gray-600 bg-gray-700 px-2 py-1 text-sm text-gray-200 placeholder-gray-500 outline-none focus:border-blue-500"
+              className="flex-1 rounded border border-[var(--c-border-s)] bg-[var(--c-bg-hover)] px-2 py-1 text-sm text-[var(--c-text-1)] placeholder-[var(--c-text-4)] outline-none focus:border-blue-500"
             />
             <button
               onClick={handleSave}
@@ -221,7 +221,7 @@ export function FileDialog({ isOpen, onClose }: FileDialogProps) {
             {currentProject && (
               <button
                 onClick={handleUpdate}
-                className="rounded bg-gray-600 px-3 py-1 text-sm text-gray-200 hover:bg-gray-500"
+                className="rounded bg-[var(--c-border-s)] px-3 py-1 text-sm text-[var(--c-text-1)] hover:bg-[var(--c-text-4)]"
               >
                 Update
               </button>

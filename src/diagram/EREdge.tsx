@@ -40,7 +40,7 @@ export function EREdge({
 
   const srcCard = (data as any)?.sourceCardinality ?? '1'
   const tgtCard = (data as any)?.targetCardinality ?? '1'
-  const color = (style?.stroke as string) ?? '#6b7280'
+  const color = (style?.stroke as string) ?? 'var(--c-edge)'
 
   const SrcMark = srcCard === '*' ? ManyMark : OneMark
   const TgtMark = tgtCard === '*' ? ManyMark : OneMark

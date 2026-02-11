@@ -61,7 +61,7 @@ export function DiagramPanel() {
   }, [viewMode, setViewMode])
 
   return (
-    <div className="h-full bg-gray-950">
+    <div className="h-full bg-[var(--c-bg-2)]">
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -72,23 +72,23 @@ export function DiagramPanel() {
         fitView
       >
         <Controls />
-        <Background variant={BackgroundVariant.Dots} color="#374151" />
+        <Background variant={BackgroundVariant.Dots} color="var(--c-dots)" />
         <Panel position="top-right" className="flex gap-1">
           <button
             onClick={handleAutoLayout}
-            className="bg-gray-800 border border-gray-600 text-gray-400 hover:text-gray-200 text-xs px-2 py-1 rounded"
+            className="bg-[var(--c-bg-3)] border border-[var(--c-border-s)] text-[var(--c-text-3)] hover:text-[var(--c-text-1)] text-xs px-2 py-1 rounded"
           >
             Auto Layout
           </button>
           <button
             onClick={toggleDirection}
-            className="bg-gray-800 border border-gray-600 text-gray-400 hover:text-gray-200 text-xs px-2 py-1 rounded"
+            className="bg-[var(--c-bg-3)] border border-[var(--c-border-s)] text-[var(--c-text-3)] hover:text-[var(--c-text-1)] text-xs px-2 py-1 rounded"
           >
             {layoutDirection === 'LR' ? 'Horizontal' : 'Vertical'}
           </button>
           <button
             onClick={toggleView}
-            className="bg-gray-800 border border-gray-600 text-gray-400 hover:text-gray-200 text-xs px-2 py-1 rounded"
+            className="bg-[var(--c-bg-3)] border border-[var(--c-border-s)] text-[var(--c-text-3)] hover:text-[var(--c-text-1)] text-xs px-2 py-1 rounded"
           >
             {viewMode === 'relational' ? 'Relational' : 'Conceptual'}
           </button>

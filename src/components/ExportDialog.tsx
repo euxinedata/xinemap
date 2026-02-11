@@ -73,28 +73,28 @@ export function ExportDialog({ isOpen, onClose }: ExportDialogProps) {
       onClick={onClose}
     >
       <div
-        className="w-[560px] max-h-[80vh] bg-gray-800 border border-gray-700 rounded-lg shadow-xl flex flex-col"
+        className="w-[560px] max-h-[80vh] bg-[var(--c-bg-3)] border border-[var(--c-border)] rounded-lg shadow-xl flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-700">
-          <h2 className="text-sm font-semibold text-gray-200">Export</h2>
+        <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--c-border)]">
+          <h2 className="text-sm font-semibold text-[var(--c-text-1)]">Export</h2>
           <button
             onClick={onClose}
-            className="text-gray-500 hover:text-gray-300 text-lg leading-none px-1"
+            className="text-[var(--c-text-4)] hover:text-[var(--c-text-2)] text-lg leading-none px-1"
           >
             &times;
           </button>
         </div>
 
         {/* Tabs */}
-        <div className="flex border-b border-gray-700">
+        <div className="flex border-b border-[var(--c-border)]">
           <button
             onClick={() => setTab('sql')}
             className={`px-4 py-2 text-xs font-medium ${
               tab === 'sql'
-                ? 'text-gray-200 border-b-2 border-blue-500'
-                : 'text-gray-500 hover:text-gray-300'
+                ? 'text-[var(--c-text-1)] border-b-2 border-blue-500'
+                : 'text-[var(--c-text-4)] hover:text-[var(--c-text-2)]'
             }`}
           >
             SQL DDL
@@ -103,8 +103,8 @@ export function ExportDialog({ isOpen, onClose }: ExportDialogProps) {
             onClick={() => setTab('png')}
             className={`px-4 py-2 text-xs font-medium ${
               tab === 'png'
-                ? 'text-gray-200 border-b-2 border-blue-500'
-                : 'text-gray-500 hover:text-gray-300'
+                ? 'text-[var(--c-text-1)] border-b-2 border-blue-500'
+                : 'text-[var(--c-text-4)] hover:text-[var(--c-text-2)]'
             }`}
           >
             PNG
@@ -113,8 +113,8 @@ export function ExportDialog({ isOpen, onClose }: ExportDialogProps) {
             onClick={() => setTab('dbml')}
             className={`px-4 py-2 text-xs font-medium ${
               tab === 'dbml'
-                ? 'text-gray-200 border-b-2 border-blue-500'
-                : 'text-gray-500 hover:text-gray-300'
+                ? 'text-[var(--c-text-1)] border-b-2 border-blue-500'
+                : 'text-[var(--c-text-4)] hover:text-[var(--c-text-2)]'
             }`}
           >
             DBML
@@ -129,7 +129,7 @@ export function ExportDialog({ isOpen, onClose }: ExportDialogProps) {
                 <select
                   value={dialect}
                   onChange={(e) => setDialect(e.target.value as SqlDialect)}
-                  className="bg-gray-900 border border-gray-600 text-gray-300 text-xs rounded px-2 py-1.5 focus:outline-none focus:border-blue-500"
+                  className="bg-[var(--c-bg-1)] border border-[var(--c-border-s)] text-[var(--c-text-2)] text-xs rounded px-2 py-1.5 focus:outline-none focus:border-blue-500"
                 >
                   {DIALECTS.map((d) => (
                     <option key={d.value} value={d.value}>
@@ -146,7 +146,7 @@ export function ExportDialog({ isOpen, onClose }: ExportDialogProps) {
                 {ddl && (
                   <button
                     onClick={handleCopy}
-                    className="text-xs text-gray-400 hover:text-gray-200 px-2 py-1.5"
+                    className="text-xs text-[var(--c-text-3)] hover:text-[var(--c-text-1)] px-2 py-1.5"
                   >
                     {copied ? 'Copied' : 'Copy'}
                   </button>
@@ -159,7 +159,7 @@ export function ExportDialog({ isOpen, onClose }: ExportDialogProps) {
                 <textarea
                   readOnly
                   value={ddl}
-                  className="bg-gray-900 border border-gray-700 text-gray-300 text-xs font-mono rounded p-3 h-64 resize-none focus:outline-none"
+                  className="bg-[var(--c-bg-1)] border border-[var(--c-border)] text-[var(--c-text-2)] text-xs font-mono rounded p-3 h-64 resize-none focus:outline-none"
                 />
               )}
             </div>
@@ -195,7 +195,7 @@ export function ExportDialog({ isOpen, onClose }: ExportDialogProps) {
               <textarea
                 readOnly
                 value={dbml}
-                className="bg-gray-900 border border-gray-700 text-gray-300 text-xs font-mono rounded p-3 h-64 resize-none focus:outline-none"
+                className="bg-[var(--c-bg-1)] border border-[var(--c-border)] text-[var(--c-text-2)] text-xs font-mono rounded p-3 h-64 resize-none focus:outline-none"
               />
             </div>
           )}

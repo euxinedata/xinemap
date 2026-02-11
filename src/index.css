@@ -1,10 +1,47 @@
 @import "tailwindcss";
 
+/* Theme color tokens */
+:root {
+  --c-bg-1: #ffffff;
+  --c-bg-2: #f9fafb;
+  --c-bg-3: #ffffff;
+  --c-bg-4: #f3f4f6;
+  --c-bg-hover: #f3f4f6;
+  --c-border: #e5e7eb;
+  --c-border-s: #d1d5db;
+  --c-divide: #e5e7eb;
+  --c-text-1: #111827;
+  --c-text-2: #374151;
+  --c-text-3: #6b7280;
+  --c-text-4: #9ca3af;
+  --c-text-5: #d1d5db;
+  --c-dots: #d1d5db;
+  --c-edge: #9ca3af;
+}
+
+.dark {
+  --c-bg-1: #111827;
+  --c-bg-2: #030712;
+  --c-bg-3: #1f2937;
+  --c-bg-4: #111827;
+  --c-bg-hover: #374151;
+  --c-border: #374151;
+  --c-border-s: #4b5563;
+  --c-divide: #374151;
+  --c-text-1: #e5e7eb;
+  --c-text-2: #d1d5db;
+  --c-text-3: #9ca3af;
+  --c-text-4: #6b7280;
+  --c-text-5: #374151;
+  --c-dots: #374151;
+  --c-edge: #6b7280;
+}
+
 body {
   margin: 0;
   min-height: 100vh;
-  background-color: #111827;
-  color: #e5e7eb;
+  background-color: var(--c-bg-1);
+  color: var(--c-text-1);
   font-family: system-ui, -apple-system, sans-serif;
 }
 
@@ -14,23 +51,27 @@ body {
   flex-direction: column;
 }
 
-/* Dark theme for React Flow controls */
+/* React Flow controls */
 .react-flow__controls {
-  background: #1f2937;
-  border: 1px solid #374151;
+  background: var(--c-bg-3);
+  border: 1px solid var(--c-border);
   border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.dark .react-flow__controls {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
 }
 
 .react-flow__controls-button {
-  background: #1f2937;
-  border-bottom: 1px solid #374151;
-  fill: #9ca3af;
+  background: var(--c-bg-3);
+  border-bottom: 1px solid var(--c-border);
+  fill: var(--c-text-4);
 }
 
 .react-flow__controls-button:hover {
-  background: #374151;
-  fill: #e5e7eb;
+  background: var(--c-bg-hover);
+  fill: var(--c-text-1);
 }
 
 .react-flow__controls-button:last-child {

@@ -3,9 +3,10 @@ import { ExportDialog } from './ExportDialog'
 import { FileDialog } from './FileDialog'
 import { useProjectStore } from '../store/useProjectStore'
 import { useEditorStore } from '../store/useEditorStore'
+import { useThemeStore } from '../store/useThemeStore'
 import { importer } from '@dbml/core'
 
-const btnClass = 'text-sm text-gray-400 hover:text-gray-200 px-3 py-1'
+const btnClass = 'text-sm text-[var(--c-text-3)] hover:text-[var(--c-text-1)] px-3 py-1'
 
 export function Toolbar() {
   const [exportOpen, setExportOpen] = useState(false)
@@ -56,9 +57,12 @@ export function Toolbar() {
     return () => window.removeEventListener('keydown', handler)
   }, [])
 
+  const isDark = useThemeStore((s) => s.isDark)
+  const toggleTheme = useThemeStore((s) => s.toggle)
+
   return (
-    <div className="h-10 bg-gray-900 border-b border-gray-700 flex items-center px-4 shrink-0">
-      <span className="text-sm font-semibold text-gray-300 tracking-wide">DGLML</span>
+    <div className="h-10 bg-[var(--c-bg-1)] border-b border-[var(--c-border)] flex items-center px-4 shrink-0">
+      <span className="text-sm font-semibold text-[var(--c-text-2)] tracking-wide">DGLML</span>
       <div className="ml-6 flex items-center gap-1">
         <button onClick={newProject} className={btnClass}>New</button>
         <button onClick={() => setFileOpen(true)} className={btnClass}>Projects</button>
@@ -66,7 +70,8 @@ export function Toolbar() {
         <button onClick={() => setExportOpen(true)} className={btnClass}>Export</button>
         <input ref={fileRef} type="file" accept=".dbml,.sql" className="hidden" onChange={handleFileChange} />
       </div>
-      <span className="ml-auto text-xs text-gray-600">
+      <button onClick={toggleTheme} className={btnClass}>{isDark ? 'Light' : 'Dark'}</button>
+      <span className="ml-auto text-xs text-[var(--c-text-4)]">
         {parseResult?.projectMeta?.name
           ?? (currentProjectId
             ? useProjectStore.getState().projects.find((p) => p.id === currentProjectId)?.name

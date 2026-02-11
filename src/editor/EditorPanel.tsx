@@ -2,12 +2,14 @@ import { useEffect, useRef } from 'react'
 import Editor, { type OnMount } from '@monaco-editor/react'
 import type * as Monaco from 'monaco-editor'
 import { useEditorStore } from '../store/useEditorStore'
+import { useThemeStore } from '../store/useThemeStore'
 import { registerDbmlLanguage, DBML_LANGUAGE_ID } from './dbmlLanguage'
 
 export function EditorPanel() {
   const dbml = useEditorStore((s) => s.dbml)
   const setDbml = useEditorStore((s) => s.setDbml)
   const parseErrors = useEditorStore((s) => s.parseErrors)
+  const isDark = useThemeStore((s) => s.isDark)
   const editorRef = useRef<Monaco.editor.IStandaloneCodeEditor | null>(null)
   const monacoRef = useRef<typeof Monaco | null>(null)
 
@@ -50,7 +52,7 @@ export function EditorPanel() {
     <Editor
       height="100%"
       language={DBML_LANGUAGE_ID}
-      theme="vs-dark"
+      theme={isDark ? 'vs-dark' : 'light'}
       value={dbml}
       onChange={(value) => setDbml(value ?? '')}
       beforeMount={(monaco) => registerDbmlLanguage(monaco)}

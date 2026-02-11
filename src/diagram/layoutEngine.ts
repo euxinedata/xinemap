@@ -2,9 +2,9 @@ import dagre from 'dagre'
 import type { Node, Edge } from '@xyflow/react'
 
 const conceptualSizes: Record<string, { width: number; height: number }> = {
-  hubNode: { width: 160, height: 50 },
-  satelliteNode: { width: 100, height: 100 },
-  linkNode: { width: 120, height: 80 },
+  hubNode: { width: 120, height: 120 },
+  satelliteNode: { width: 180, height: 50 },
+  linkNode: { width: 100, height: 70 },
   noteNode: { width: 160, height: 80 },
   conceptNode: { width: 140, height: 50 },
 }

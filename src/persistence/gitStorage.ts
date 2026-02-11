@@ -3,7 +3,7 @@ import { Buffer } from 'buffer'
 
 import git from 'isomorphic-git'
 import LightningFS from '@isomorphic-git/lightning-fs'
-import type { SavedProject, CommitInfo } from '../types'
+import type { SavedProject, CommitInfo, SourceConfig } from '../types'
 
 const lfs = new LightningFS('dglml')
 const fs = lfs
@@ -168,6 +168,39 @@ export async function restoreCommit(id: string, oid: string): Promise<string | n
   })
 
   return commitOid
+}
+
+// --- Source Config Persistence ---
+
+export async function getSourceConfig(id: string): Promise<SourceConfig | null> {
+  const dir = projectDir(id)
+  try {
+    const raw = await pfs.readFile(`${dir}/source_config.json`, 'utf8') as string
+    return JSON.parse(raw) as SourceConfig
+  } catch {
+    return null
+  }
+}
+
+export async function saveSourceConfig(id: string, config: SourceConfig): Promise<void> {
+  const dir = projectDir(id)
+  try {
+    await pfs.stat(`${dir}/.git`)
+  } catch {
+    return // project doesn't exist yet
+  }
+
+  await pfs.writeFile(`${dir}/source_config.json`, JSON.stringify(config, null, 2), 'utf8')
+  await git.add({ fs, dir, filepath: 'source_config.json' })
+
+  const now = new Date()
+  const ts = now.toLocaleString('sv-SE', { hour12: false }).replace(',', '')
+  await git.commit({
+    fs,
+    dir,
+    message: `Update sources ${ts}`,
+    author: { ...AUTHOR, timestamp: Math.floor(now.getTime() / 1000) },
+  })
 }
 
 // --- Migration from localStorage ---

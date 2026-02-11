@@ -124,3 +124,27 @@ export interface CommitInfo {
   message: string
   timestamp: number
 }
+
+// --- Source Configuration (DataVault4dbt) ---
+
+export interface SourceMapping {
+  sourceName: string
+  tableName: string
+  ldtsColumn: string
+  rsrcValue: string
+  columnMapping?: Record<string, string>
+}
+
+export type SourceConfig = Record<string, SourceMapping>
+
+export interface DbtProjectInfo {
+  found: boolean
+  projectName?: string
+  modelPaths?: string[]
+  projectDir?: string
+}
+
+export interface GeneratedFile {
+  path: string
+  content: string
+}

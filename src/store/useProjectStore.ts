@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import type { SavedProject, CommitInfo } from '../types'
 import * as storage from '../persistence/gitStorage'
 import { useEditorStore } from './useEditorStore'
+import { useSourceConfigStore } from './useSourceConfigStore'
 
 interface ProjectState {
   currentProjectId: string | null
@@ -35,6 +36,11 @@ export const useProjectStore = create<ProjectState>()((set) => ({
     const project: SavedProject = { id, name, dbml, updatedAt: Date.now() }
     await storage.saveProject(project)
 
+    const sourceConfig = useSourceConfigStore.getState().sourceConfig
+    if (Object.keys(sourceConfig).length > 0) {
+      await storage.saveSourceConfig(id, sourceConfig)
+    }
+
     const projects = await storage.listProjects()
     const history = await storage.getHistory(id)
     set({ currentProjectId: id, projects, commitHistory: history })
@@ -44,6 +50,14 @@ export const useProjectStore = create<ProjectState>()((set) => ({
     const project = await storage.getProject(id)
     if (!project) return
     useEditorStore.getState().setDbml(project.dbml)
+
+    const sourceConfig = await storage.getSourceConfig(id)
+    if (sourceConfig) {
+      useSourceConfigStore.getState().setSourceConfig(sourceConfig)
+    } else {
+      useSourceConfigStore.getState().setSourceConfig({})
+    }
+
     const history = await storage.getHistory(id)
     set({ currentProjectId: id, commitHistory: history })
   },
@@ -60,6 +74,7 @@ export const useProjectStore = create<ProjectState>()((set) => ({
 
   newProject: () => {
     useEditorStore.getState().setDbml('')
+    useSourceConfigStore.getState().setSourceConfig({})
     set({ currentProjectId: null, commitHistory: [] })
   },
 

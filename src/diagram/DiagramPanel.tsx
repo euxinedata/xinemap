@@ -37,17 +37,21 @@ export function DiagramPanel() {
       setEdges([])
       return
     }
+    let stale = false
     const convert = viewMode === 'conceptual' ? parseResultToConceptualFlow : parseResultToFlow
     const { nodes: flowNodes, edges: flowEdges } = convert(parseResult)
-    const laid = layoutNodes(flowNodes, flowEdges, layoutDirection)
-    setNodes(laid)
-    setEdges(flowEdges)
+    layoutNodes(flowNodes, flowEdges, layoutDirection).then((laid) => {
+      if (!stale) {
+        setNodes(laid)
+        setEdges(flowEdges)
+      }
+    })
+    return () => { stale = true }
   }, [parseResult, layoutDirection, viewMode, setNodes, setEdges])
 
   const handleAutoLayout = useCallback(() => {
     if (nodes.length === 0) return
-    const laid = layoutNodes(nodes, edges, layoutDirection)
-    setNodes(laid)
+    layoutNodes(nodes, edges, layoutDirection).then((laid) => setNodes(laid))
   }, [nodes, edges, layoutDirection, setNodes])
 
   const toggleDirection = useCallback(() => {

@@ -1,36 +1,47 @@
-import type { ParseResult, SourceConfig, GeneratedFile, TableInfo } from '../types'
+import type { ParseResult, SourceConfig, GeneratedFile, TableInfo, ColumnInfo } from '../types'
 
 const SYSTEM_COLUMNS = new Set(['load_date', 'record_source', 'hash_diff'])
 
-function isSystemColumn(name: string): boolean {
-  return SYSTEM_COLUMNS.has(name) || name.startsWith('hk_')
+function isSysCol(col: ColumnInfo): boolean {
+  if (col.isInjected) return true
+  if (col.dv2Role === 'hk') return true
+  return SYSTEM_COLUMNS.has(col.name) || col.name.startsWith('hk_')
 }
 
 function getHashKey(table: TableInfo): string | null {
-  const col = table.columns.find((c) => c.isPrimaryKey && c.name.startsWith('hk_'))
-  return col?.name ?? null
+  const byRole = table.columns.find((c) => c.dv2Role === 'hk' && c.isPrimaryKey)
+  if (byRole) return byRole.name
+  const byName = table.columns.find((c) => c.isPrimaryKey && c.name.startsWith('hk_'))
+  return byName?.name ?? null
 }
 
 function getBusinessKeys(table: TableInfo): string[] {
-  return table.columns.filter((c) => !isSystemColumn(c.name)).map((c) => c.name)
+  const byRole = table.columns.filter((c) => c.dv2Role === 'bk')
+  if (byRole.length > 0) return byRole.map((c) => c.name)
+  return table.columns.filter((c) => !isSysCol(c)).map((c) => c.name)
 }
 
 function getPayloadColumns(table: TableInfo): string[] {
-  return table.columns.filter((c) => !isSystemColumn(c.name)).map((c) => c.name)
+  return table.columns.filter((c) => !isSysCol(c)).map((c) => c.name)
 }
 
 function getParentHashKey(table: TableInfo): string | null {
-  const col = table.columns.find((c) => c.name.startsWith('hk_') && !c.isPrimaryKey)
-  // If no non-PK hk_ column, use the PK one (some satellites have hk as PK)
-  if (!col) {
-    const pkCol = table.columns.find((c) => c.name.startsWith('hk_') && c.isPrimaryKey)
-    return pkCol?.name ?? null
-  }
-  return col.name
+  // By role: any hk-annotated column (satellites typically have one)
+  const byRole = table.columns.find((c) => c.dv2Role === 'hk')
+  if (byRole) return byRole.name
+  // Fallback: non-PK hk_ column, or PK hk_ if no non-PK exists
+  const nonPk = table.columns.find((c) => c.name.startsWith('hk_') && !c.isPrimaryKey)
+  if (nonPk) return nonPk.name
+  const pk = table.columns.find((c) => c.name.startsWith('hk_') && c.isPrimaryKey)
+  return pk?.name ?? null
 }
 
 function getForeignHashKeys(table: TableInfo): string[] {
   const pk = getHashKey(table)
+  // By role: all hk-annotated columns except the PK
+  const byRole = table.columns.filter((c) => c.dv2Role === 'hk' && c.name !== pk)
+  if (byRole.length > 0) return byRole.map((c) => c.name)
+  // Fallback: hk_ prefix columns except the PK
   return table.columns
     .filter((c) => c.name.startsWith('hk_') && c.name !== pk)
     .map((c) => c.name)
@@ -236,12 +247,10 @@ export function generateDV4dbt(
   // Generate link models
   for (const link of links) {
     const mapping = sourceConfig[link.id]
-    // Links can use their own source mapping, or derive staging from first linked hub
     let stagingName: string
     if (mapping) {
       stagingName = `stage_${mapping.tableName}`
 
-      // Also generate staging for the link if it has its own source
       const linkSats = satellites.filter((sat) => {
         const meta = metaById.get(sat.id)!
         return meta.parentHubs.some((pid) => {
@@ -262,7 +271,6 @@ export function generateDV4dbt(
         ),
       })
     } else {
-      // Derive from first linked hub that has a source config
       const meta = metaById.get(link.id)!
       const firstHub = meta.linkedHubs.find((hid) => sourceConfig[hid])
       if (!firstHub) continue

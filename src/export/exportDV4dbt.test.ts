@@ -2,7 +2,9 @@ import { describe, it, expect } from 'vitest'
 import { generateDV4dbt } from './exportDV4dbt'
 import type { ParseResult, SourceConfig, TableInfo, DV2Metadata } from '../types'
 
-function col(name: string, opts: Partial<{ pk: boolean; fk: boolean }> = {}) {
+import type { DV2ColumnRole } from '../types'
+
+function col(name: string, opts: Partial<{ pk: boolean; fk: boolean; dv2Role: DV2ColumnRole; isInjected: boolean }> = {}) {
   return {
     name,
     type: 'VARCHAR',
@@ -10,6 +12,8 @@ function col(name: string, opts: Partial<{ pk: boolean; fk: boolean }> = {}) {
     isForeignKey: opts.fk ?? false,
     isNotNull: false,
     isUnique: false,
+    dv2Role: opts.dv2Role,
+    isInjected: opts.isInjected,
   }
 }
 
@@ -231,5 +235,91 @@ describe('generateDV4dbt', () => {
     for (const f of nonStaging) {
       expect(f.content).toContain("materialized='incremental'")
     }
+  })
+
+  // --- Note-based role tests ---
+
+  describe('with note-based roles (TablePartial style)', () => {
+    const noteHub: TableInfo = {
+      id: 'nhub1',
+      schema: '',
+      name: 'hub_customer',
+      columns: [
+        col('hub_customer_hsh', { pk: true, dv2Role: 'hk' }),
+        col('country_cd', { dv2Role: 'bk' }),
+        col('unified_customer_id', { dv2Role: 'bk' }),
+        col('_created_at', { isInjected: true }),
+        col('rsrc', { isInjected: true }),
+      ],
+    }
+
+    const noteSat: TableInfo = {
+      id: 'nsat1',
+      schema: '',
+      name: 'sat_customer_cdc',
+      columns: [
+        col('hub_customer_hsh', { pk: true, fk: true, dv2Role: 'hk' }),
+        col('account_typ'),
+        col('birth_date'),
+        col('ldts', { pk: true, isInjected: true }),
+        col('_created_at', { isInjected: true }),
+        col('rsrc', { isInjected: true }),
+      ],
+    }
+
+    const noteMeta = new Map<string, DV2Metadata>([
+      ['nhub1', { entityType: 'hub', parentHubs: [], linkedHubs: [] }],
+      ['nsat1', { entityType: 'satellite', parentHubs: ['nhub1'], linkedHubs: [] }],
+    ])
+
+    const noteConfig: SourceConfig = {
+      nhub1: {
+        sourceName: 'raw',
+        tableName: 'customer',
+        ldtsColumn: 'load_datetime',
+        rsrcValue: '!CRM/Customers',
+      },
+    }
+
+    it('uses note-based hk for hub hashkey', () => {
+      const result = makeResult([noteHub, noteSat], noteMeta)
+      const files = generateDV4dbt(result, noteConfig)
+      const hubFile = files.find((f) => f.path === 'hubs/hub_customer.sql')!
+
+      expect(hubFile.content).toContain("hashkey: 'hub_customer_hsh'")
+    })
+
+    it('uses note-based bk for business keys', () => {
+      const result = makeResult([noteHub, noteSat], noteMeta)
+      const files = generateDV4dbt(result, noteConfig)
+      const hubFile = files.find((f) => f.path === 'hubs/hub_customer.sql')!
+
+      expect(hubFile.content).toContain('- country_cd')
+      expect(hubFile.content).toContain('- unified_customer_id')
+    })
+
+    it('excludes injected columns from business keys and payload', () => {
+      const result = makeResult([noteHub, noteSat], noteMeta)
+      const files = generateDV4dbt(result, noteConfig)
+      const hubFile = files.find((f) => f.path === 'hubs/hub_customer.sql')!
+      const satFile = files.find((f) => f.path === 'satellites/sat_customer_cdc.sql')!
+
+      // Injected columns should not appear in business_keys
+      expect(hubFile.content).not.toContain('_created_at')
+      expect(hubFile.content).not.toContain('- rsrc')
+
+      // Satellite payload should only have non-system columns
+      expect(satFile.content).toContain('- account_typ')
+      expect(satFile.content).toContain('- birth_date')
+      expect(satFile.content).not.toContain('_created_at')
+    })
+
+    it('satellite uses note-based parent hashkey', () => {
+      const result = makeResult([noteHub, noteSat], noteMeta)
+      const files = generateDV4dbt(result, noteConfig)
+      const satFile = files.find((f) => f.path === 'satellites/sat_customer_cdc.sql')!
+
+      expect(satFile.content).toContain("parent_hashkey: 'hub_customer_hsh'")
+    })
   })
 })

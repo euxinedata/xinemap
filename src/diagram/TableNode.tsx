@@ -19,7 +19,7 @@ function TableNodeComponent({ data, id }: NodeProps) {
       </div>
       <div className="divide-y divide-[var(--c-divide)]">
         {table.columns.map((col) => (
-          <div key={col.name} className="relative px-3 py-1.5 flex items-center justify-between gap-3 text-[var(--c-text-2)]">
+          <div key={col.name} className={`relative px-3 py-1.5 flex items-center justify-between gap-3 text-[var(--c-text-2)]${col.isInjected ? ' opacity-50' : ''}`}>
             <Handle
               type="target"
               position={Position.Left}
@@ -34,6 +34,18 @@ function TableNodeComponent({ data, id }: NodeProps) {
               )}
               {col.isForeignKey && (
                 <span className="text-[9px] px-1 rounded bg-blue-700 text-blue-200 font-bold">FK</span>
+              )}
+              {col.dv2Role === 'hk' && (
+                <span className="text-[9px] px-1 rounded bg-orange-700 text-orange-200 font-bold">HK</span>
+              )}
+              {col.dv2Role === 'bk' && (
+                <span className="text-[9px] px-1 rounded bg-green-700 text-green-200 font-bold">BK</span>
+              )}
+              {col.dv2Role === 'mak' && (
+                <span className="text-[9px] px-1 rounded bg-purple-700 text-purple-200 font-bold">MAK</span>
+              )}
+              {col.dv2Role === 'dk' && (
+                <span className="text-[9px] px-1 rounded bg-cyan-700 text-cyan-200 font-bold">DK</span>
               )}
             </span>
             <span className="text-[var(--c-text-4)]">{col.type}</span>

@@ -11,7 +11,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@dbml/core": "^6.1.0",
+    "@dbml/core": "^6.3.0-alpha.8",
     "@isomorphic-git/lightning-fs": "^4.6.2",
     "@monaco-editor/react": "^4.7.0",
     "@tailwindcss/vite": "^4.1.18",

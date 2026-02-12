@@ -1,9 +1,37 @@
 import { Parser } from '@dbml/core'
-import type { ParseResult, StickyNoteInfo, DV2Metadata, DV2EntityType, ProjectMeta } from '../types'
+import type { ParseResult, StickyNoteInfo, DV2Metadata, DV2EntityType, DV2ColumnRole, ProjectMeta } from '../types'
+
+function parseDV2Role(note: string | undefined): DV2ColumnRole | undefined {
+  if (!note) return undefined
+  if (note.includes('**hk**')) return 'hk'
+  if (note.includes('**bk**')) return 'bk'
+  if (note.includes('**mak**')) return 'mak'
+  if (note.includes('**driving key**')) return 'dk'
+  return undefined
+}
+
+function entityTypeFromPartials(partials: any[]): DV2EntityType | null {
+  for (const p of partials) {
+    const name = (p.name ?? '').toLowerCase()
+    if (name === 'hub') return 'hub'
+    if (name === 'satellite') return 'satellite'
+    if (name === 'link') return 'link'
+    if (name.startsWith('reference')) return 'reference'
+  }
+  return null
+}
+
+function entityTypeFromGroup(group: string): DV2EntityType {
+  const g = group.toLowerCase()
+  if (g.startsWith('hub')) return 'hub'
+  if (g.startsWith('sat')) return 'satellite'
+  if (g.startsWith('link')) return 'link'
+  return 'reference'
+}
 
 export function parseDbml(source: string): ParseResult {
   try {
-    const database = Parser.parse(source, 'dbml')
+    const database = Parser.parse(source, 'dbmlv2')
     const exported = database.export()
 
     // Build table→group mapping from TableGroups
@@ -18,10 +46,19 @@ export function parseDbml(source: string): ParseResult {
       }
     }
 
+    // Store entity type hints from partials (keyed by tableId)
+    const entityHintMap = new Map<string, DV2EntityType>()
+
     const tables = exported.schemas.flatMap((schema) => {
       const schemaName = schema.name || 'public'
       return schema.tables.map((table) => {
         const tableId = `${schemaName}.${table.name}`
+
+        // Extract entity type from TablePartial injections
+        const partials = (table as any).partials ?? []
+        const hint = entityTypeFromPartials(partials)
+        if (hint) entityHintMap.set(tableId, hint)
+
         return {
           id: tableId,
           schema: schemaName,
@@ -35,6 +72,8 @@ export function parseDbml(source: string): ParseResult {
             isUnique: field.unique,
             defaultValue: field.dbdefault != null ? String(field.dbdefault) : undefined,
             note: field.note || undefined,
+            dv2Role: parseDV2Role(field.note),
+            isInjected: !!(field as any).injectedPartialId,
           })),
           headerColor: table.headerColor || undefined,
           note: table.note || undefined,
@@ -104,40 +143,38 @@ export function parseDbml(source: string): ParseResult {
       headerColor: n.headerColor || undefined,
     }))
 
-    // Build DV2 metadata from groups and refs
+    // Build DV2 metadata — two-pass approach
+    // Pass 1: classify all tables (partials take priority over groups)
     const dv2Metadata = new Map<string, DV2Metadata>()
     for (const table of tables) {
-      const group = table.group?.toLowerCase() ?? ''
-      let entityType: DV2EntityType = 'reference'
-      if (group.startsWith('hub')) entityType = 'hub'
-      else if (group.startsWith('sat')) entityType = 'satellite'
-      else if (group.startsWith('link')) entityType = 'link'
+      const hint = entityHintMap.get(table.id)
+      const group = table.group ?? ''
+      const entityType = hint ?? entityTypeFromGroup(group)
+      dv2Metadata.set(table.id, { entityType, parentHubs: [], linkedHubs: [] })
+    }
 
-      const parentHubs: string[] = []
-      const linkedHubs: string[] = []
-
-      if (entityType === 'satellite') {
+    // Pass 2: resolve relationships using classified types
+    for (const table of tables) {
+      const m = dv2Metadata.get(table.id)!
+      if (m.entityType === 'satellite') {
         for (const ref of refs) {
           if (ref.fromTable === table.id) {
-            const target = tables.find((t) => t.id === ref.toTable)
-            if (target) {
-              const tg = target.group?.toLowerCase() ?? ''
-              if (tg.startsWith('hub') || tg.startsWith('link')) parentHubs.push(target.id)
+            const targetMeta = dv2Metadata.get(ref.toTable)
+            if (targetMeta && (targetMeta.entityType === 'hub' || targetMeta.entityType === 'link')) {
+              m.parentHubs.push(ref.toTable)
             }
           }
         }
-      } else if (entityType === 'link') {
+      } else if (m.entityType === 'link') {
         for (const ref of refs) {
           if (ref.fromTable === table.id) {
-            const target = tables.find((t) => t.id === ref.toTable)
-            if (target && (target.group?.toLowerCase() ?? '').startsWith('hub')) {
-              linkedHubs.push(target.id)
+            const targetMeta = dv2Metadata.get(ref.toTable)
+            if (targetMeta && targetMeta.entityType === 'hub') {
+              m.linkedHubs.push(ref.toTable)
             }
           }
         }
       }
-
-      dv2Metadata.set(table.id, { entityType, parentHubs, linkedHubs })
     }
 
     // Extract project metadata

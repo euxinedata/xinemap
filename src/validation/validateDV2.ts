@@ -1,32 +1,42 @@
-import type { ParseResult, ValidationResult, ValidationIssue, ModelStats, TableInfo, DV2Metadata } from '../types'
+import type { ParseResult, ValidationResult, ValidationIssue, ModelStats, TableInfo, ColumnInfo, DV2Metadata } from '../types'
 
 const SYSTEM_COLUMNS = new Set(['load_date', 'record_source', 'hash_diff'])
 
-function isSystemColumn(name: string): boolean {
-  return SYSTEM_COLUMNS.has(name) || name.startsWith('hk_')
+function isSystemCol(col: ColumnInfo): boolean {
+  if (col.isInjected) return true
+  return SYSTEM_COLUMNS.has(col.name) || col.name.startsWith('hk_')
+}
+
+function hasHashKey(table: TableInfo): boolean {
+  return table.columns.some((c) => c.dv2Role === 'hk') ||
+         table.columns.some((c) => c.isPrimaryKey && c.name.startsWith('hk_'))
+}
+
+function hasBusinessKey(table: TableInfo): boolean {
+  return table.columns.some((c) => c.dv2Role === 'bk') ||
+         table.columns.some((c) => !isSystemCol(c))
+}
+
+function hasParentHk(table: TableInfo): boolean {
+  return table.columns.some((c) => c.dv2Role === 'hk') ||
+         table.columns.some((c) => c.name.startsWith('hk_'))
+}
+
+function hasInjectedColumns(table: TableInfo): boolean {
+  return table.columns.some((c) => c.isInjected)
 }
 
 function hasColumn(table: TableInfo, name: string): boolean {
   return table.columns.some((c) => c.name === name)
 }
 
-function hasColumnPrefix(table: TableInfo, prefix: string): boolean {
-  return table.columns.some((c) => c.name.startsWith(prefix))
-}
-
-function hasColumnPrefixPK(table: TableInfo, prefix: string): boolean {
-  return table.columns.some((c) => c.name.startsWith(prefix) && c.isPrimaryKey)
-}
-
 export function validateDV2(result: ParseResult): ValidationResult {
   const issues: ValidationIssue[] = []
   const { tables, dv2Metadata } = result
 
-  // Helper to get entity type for a table
   const meta = (id: string): DV2Metadata | undefined => dv2Metadata.get(id)
   const tableById = new Map(tables.map((t) => [t.id, t]))
 
-  // Collect entities by type
   const hubs: TableInfo[] = []
   const satellites: TableInfo[] = []
   const links: TableInfo[] = []
@@ -61,7 +71,6 @@ export function validateDV2(result: ParseResult): ValidationResult {
 
   // --- Structural (error) ---
 
-  // 1. hub-needs-satellite
   for (const hub of hubs) {
     if (!hubsWithSatellite.has(hub.id)) {
       issues.push({
@@ -73,7 +82,6 @@ export function validateDV2(result: ParseResult): ValidationResult {
     }
   }
 
-  // 2. satellite-needs-parent
   for (const sat of satellites) {
     const m = meta(sat.id)!
     if (m.parentHubs.length === 0) {
@@ -86,7 +94,6 @@ export function validateDV2(result: ParseResult): ValidationResult {
     }
   }
 
-  // 3. link-needs-two-hubs
   for (const link of links) {
     const m = meta(link.id)!
     const distinctHubs = new Set(m.linkedHubs)
@@ -102,7 +109,6 @@ export function validateDV2(result: ParseResult): ValidationResult {
 
   // --- Structural (warning) ---
 
-  // 4. link-needs-satellite
   for (const link of links) {
     if (!linksWithSatellite.has(link.id)) {
       issues.push({
@@ -117,36 +123,34 @@ export function validateDV2(result: ParseResult): ValidationResult {
   // --- Column (error) — Hubs ---
 
   for (const hub of hubs) {
-    // 5. hub-needs-hash-key
-    if (!hasColumnPrefixPK(hub, 'hk_')) {
+    if (!hasHashKey(hub)) {
       issues.push({
         severity: 'error',
         rule: 'hub-needs-hash-key',
-        message: `Hub "${hub.name}" must have a primary key column starting with "hk_"`,
+        message: `Hub "${hub.name}" must have a hash key (column with note **hk** or name starting with "hk_")`,
         tableId: hub.id,
       })
     }
-    // 6. hub-needs-load-date
-    if (!hasColumn(hub, 'load_date')) {
-      issues.push({
-        severity: 'error',
-        rule: 'hub-needs-load-date',
-        message: `Hub "${hub.name}" must have a "load_date" column`,
-        tableId: hub.id,
-      })
+    // System columns from partials satisfy load_date/record_source requirements
+    if (!hasInjectedColumns(hub)) {
+      if (!hasColumn(hub, 'load_date')) {
+        issues.push({
+          severity: 'error',
+          rule: 'hub-needs-load-date',
+          message: `Hub "${hub.name}" must have a "load_date" column`,
+          tableId: hub.id,
+        })
+      }
+      if (!hasColumn(hub, 'record_source')) {
+        issues.push({
+          severity: 'error',
+          rule: 'hub-needs-record-source',
+          message: `Hub "${hub.name}" must have a "record_source" column`,
+          tableId: hub.id,
+        })
+      }
     }
-    // 7. hub-needs-record-source
-    if (!hasColumn(hub, 'record_source')) {
-      issues.push({
-        severity: 'error',
-        rule: 'hub-needs-record-source',
-        message: `Hub "${hub.name}" must have a "record_source" column`,
-        tableId: hub.id,
-      })
-    }
-    // 8. hub-needs-business-key
-    const businessKeys = hub.columns.filter((c) => !isSystemColumn(c.name))
-    if (businessKeys.length === 0) {
+    if (!hasBusinessKey(hub)) {
       issues.push({
         severity: 'error',
         rule: 'hub-needs-business-key',
@@ -159,30 +163,29 @@ export function validateDV2(result: ParseResult): ValidationResult {
   // --- Column (error) — Satellites ---
 
   for (const sat of satellites) {
-    // 9. sat-needs-hash-diff
-    if (!hasColumn(sat, 'hash_diff')) {
-      issues.push({
-        severity: 'error',
-        rule: 'sat-needs-hash-diff',
-        message: `Satellite "${sat.name}" must have a "hash_diff" column`,
-        tableId: sat.id,
-      })
+    if (!hasInjectedColumns(sat)) {
+      if (!hasColumn(sat, 'hash_diff')) {
+        issues.push({
+          severity: 'error',
+          rule: 'sat-needs-hash-diff',
+          message: `Satellite "${sat.name}" must have a "hash_diff" column`,
+          tableId: sat.id,
+        })
+      }
+      if (!hasColumn(sat, 'load_date')) {
+        issues.push({
+          severity: 'error',
+          rule: 'sat-needs-load-date',
+          message: `Satellite "${sat.name}" must have a "load_date" column`,
+          tableId: sat.id,
+        })
+      }
     }
-    // 10. sat-needs-load-date
-    if (!hasColumn(sat, 'load_date')) {
-      issues.push({
-        severity: 'error',
-        rule: 'sat-needs-load-date',
-        message: `Satellite "${sat.name}" must have a "load_date" column`,
-        tableId: sat.id,
-      })
-    }
-    // 11. sat-needs-parent-hk
-    if (!hasColumnPrefix(sat, 'hk_')) {
+    if (!hasParentHk(sat)) {
       issues.push({
         severity: 'error',
         rule: 'sat-needs-parent-hk',
-        message: `Satellite "${sat.name}" must have a hash key column starting with "hk_"`,
+        message: `Satellite "${sat.name}" must have a hash key column (note **hk** or name starting with "hk_")`,
         tableId: sat.id,
       })
     }
@@ -192,48 +195,47 @@ export function validateDV2(result: ParseResult): ValidationResult {
 
   for (const link of links) {
     const m = meta(link.id)!
-    // 12. link-needs-hash-key
-    if (!hasColumnPrefixPK(link, 'hk_')) {
+    if (!hasHashKey(link)) {
       issues.push({
         severity: 'error',
         rule: 'link-needs-hash-key',
-        message: `Link "${link.name}" must have a primary key column starting with "hk_"`,
+        message: `Link "${link.name}" must have a hash key (column with note **hk** or name starting with "hk_")`,
         tableId: link.id,
       })
     }
-    // 13. link-needs-load-date
-    if (!hasColumn(link, 'load_date')) {
-      issues.push({
-        severity: 'error',
-        rule: 'link-needs-load-date',
-        message: `Link "${link.name}" must have a "load_date" column`,
-        tableId: link.id,
-      })
+    if (!hasInjectedColumns(link)) {
+      if (!hasColumn(link, 'load_date')) {
+        issues.push({
+          severity: 'error',
+          rule: 'link-needs-load-date',
+          message: `Link "${link.name}" must have a "load_date" column`,
+          tableId: link.id,
+        })
+      }
+      if (!hasColumn(link, 'record_source')) {
+        issues.push({
+          severity: 'error',
+          rule: 'link-needs-record-source',
+          message: `Link "${link.name}" must have a "record_source" column`,
+          tableId: link.id,
+        })
+      }
     }
-    // 14. link-needs-record-source
-    if (!hasColumn(link, 'record_source')) {
-      issues.push({
-        severity: 'error',
-        rule: 'link-needs-record-source',
-        message: `Link "${link.name}" must have a "record_source" column`,
-        tableId: link.id,
-      })
-    }
-    // 15. link-needs-hub-hks — link must have hk columns for each referenced hub
+    // link-needs-hub-hks: check that link has hash key columns for each referenced hub
     for (const hubId of m.linkedHubs) {
       const hubTable = tableById.get(hubId)
       if (!hubTable) continue
-      const hubHkCols = hubTable.columns.filter((c) => c.name.startsWith('hk_'))
-      for (const hubHk of hubHkCols) {
-        if (!hasColumn(link, hubHk.name)) {
-          issues.push({
-            severity: 'error',
-            rule: 'link-needs-hub-hks',
-            message: `Link "${link.name}" is missing hash key column "${hubHk.name}" for hub "${hubTable.name}"`,
-            tableId: link.id,
-            columnName: hubHk.name,
-          })
-        }
+      // Find the hub's hash key (by role or by name)
+      const hubHk = hubTable.columns.find((c) => c.dv2Role === 'hk') ??
+                     hubTable.columns.find((c) => c.name.startsWith('hk_'))
+      if (hubHk && !hasColumn(link, hubHk.name)) {
+        issues.push({
+          severity: 'error',
+          rule: 'link-needs-hub-hks',
+          message: `Link "${link.name}" is missing hash key column "${hubHk.name}" for hub "${hubTable.name}"`,
+          tableId: link.id,
+          columnName: hubHk.name,
+        })
       }
     }
   }
@@ -242,7 +244,6 @@ export function validateDV2(result: ParseResult): ValidationResult {
 
   for (const hub of hubs) {
     const lower = hub.name.toLowerCase()
-    // 16. naming-hub-prefix
     if (lower.startsWith('sat_') || lower.startsWith('lnk_')) {
       issues.push({
         severity: 'warning',
@@ -256,8 +257,7 @@ export function validateDV2(result: ParseResult): ValidationResult {
   for (const sat of satellites) {
     const lower = sat.name.toLowerCase()
     const group = sat.group?.toLowerCase() ?? ''
-    // 17. naming-sat-prefix
-    if (!lower.startsWith('sat_') && !group.startsWith('sat')) {
+    if (!lower.startsWith('sat_') && !lower.startsWith('satm_') && !lower.startsWith('sate_') && !group.startsWith('sat')) {
       issues.push({
         severity: 'warning',
         rule: 'naming-sat-prefix',
@@ -270,12 +270,11 @@ export function validateDV2(result: ParseResult): ValidationResult {
   for (const link of links) {
     const lower = link.name.toLowerCase()
     const group = link.group?.toLowerCase() ?? ''
-    // 18. naming-link-prefix
-    if (!lower.startsWith('lnk_') && !group.startsWith('link')) {
+    if (!lower.startsWith('lnk_') && !lower.startsWith('link_') && !group.startsWith('link')) {
       issues.push({
         severity: 'warning',
         rule: 'naming-link-prefix',
-        message: `Link "${link.name}" name should start with "lnk_" or be in a link group`,
+        message: `Link "${link.name}" name should start with "lnk_" or "link_" or be in a link group`,
         tableId: link.id,
       })
     }
@@ -283,9 +282,8 @@ export function validateDV2(result: ParseResult): ValidationResult {
 
   // --- Info ---
 
-  // 19. hub-no-descriptive-columns
   for (const hub of hubs) {
-    const descriptive = hub.columns.filter((c) => !isSystemColumn(c.name))
+    const descriptive = hub.columns.filter((c) => !isSystemCol(c))
     if (descriptive.length > 0) {
       issues.push({
         severity: 'info',

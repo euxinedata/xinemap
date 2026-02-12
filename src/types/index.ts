@@ -1,3 +1,5 @@
+export type DV2ColumnRole = 'hk' | 'bk' | 'mak' | 'dk'
+
 export interface ColumnInfo {
   name: string
   type: string
@@ -7,6 +9,8 @@ export interface ColumnInfo {
   isUnique: boolean
   defaultValue?: string
   note?: string
+  dv2Role?: DV2ColumnRole
+  isInjected?: boolean
 }
 
 export interface TableInfo {

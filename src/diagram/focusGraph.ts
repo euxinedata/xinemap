@@ -18,17 +18,27 @@ export function buildFocusGraph(
   const visibleFull = new Set([focusedId, ...expandedIds])
   const tableMap = new Map(parseResult.tables.map((t) => [t.id, t]))
 
-  // Find all refs that touch any visible-full table
+  // Find relevant refs — only create stubs for direct neighbors of the center
   const relevantRefs: RefInfo[] = []
   const stubIds = new Set<string>()
 
   for (const ref of parseResult.refs) {
     const fromVisible = visibleFull.has(ref.fromTable)
     const toVisible = visibleFull.has(ref.toTable)
-    if (!fromVisible && !toVisible) continue
-    relevantRefs.push(ref)
-    if (!fromVisible) stubIds.add(ref.fromTable)
-    if (!toVisible) stubIds.add(ref.toTable)
+
+    if (fromVisible && toVisible) {
+      // Both ends are full tables (center + expanded) — always include
+      relevantRefs.push(ref)
+    } else if (ref.fromTable === focusedId && !toVisible) {
+      // Center → unknown neighbor → show as stub
+      relevantRefs.push(ref)
+      stubIds.add(ref.toTable)
+    } else if (ref.toTable === focusedId && !fromVisible) {
+      // Unknown neighbor → center → show as stub
+      relevantRefs.push(ref)
+      stubIds.add(ref.fromTable)
+    }
+    // Skip refs from expanded tables to non-visible tables (no stubs for their neighbors)
   }
 
   // Build nodes
@@ -37,6 +47,7 @@ export function buildFocusGraph(
   for (const id of visibleFull) {
     const table = tableMap.get(id)
     if (!table) continue
+    const meta = parseResult.dv2Metadata.get(id)
     const isFocused = id === focusedId
     nodes.push({
       id,
@@ -44,6 +55,7 @@ export function buildFocusGraph(
       position: { x: 0, y: 0 },
       data: {
         table,
+        dv2EntityType: meta?.entityType,
         ...(isFocused ? {} : { onCollapse: () => onCollapse(id) }),
       },
     })
@@ -60,7 +72,6 @@ export function buildFocusGraph(
       data: {
         label: table.name,
         entityType: meta?.entityType,
-        headerColor: table.headerColor,
         onExpand: () => onExpand(id),
       },
     })
@@ -72,27 +83,21 @@ export function buildFocusGraph(
   for (const ref of relevantRefs) {
     const fromFull = visibleFull.has(ref.fromTable)
     const toFull = visibleFull.has(ref.toTable)
+    const [srcCard, tgtCard] = cardinalityMap[ref.type]
 
     if (fromFull && toFull) {
-      // Both full — column-level handles + EREdge
-      const [srcCard, tgtCard] = cardinalityMap[ref.type]
+      // Both full — use fromCol/toCol for dynamic handle assignment
       edges.push({
         id: ref.id,
         source: ref.fromTable,
         target: ref.toTable,
-        sourceHandle: `${ref.fromTable}.${ref.fromColumns[0]}-source`,
-        targetHandle: `${ref.toTable}.${ref.toColumns[0]}-target`,
         type: 'erEdge',
-        data: { sourceCardinality: srcCard, targetCardinality: tgtCard },
+        data: { sourceCardinality: srcCard, targetCardinality: tgtCard, fromCol: ref.fromColumns[0], toCol: ref.toColumns[0] },
       })
     } else {
-      // One or both ends are stubs — simple handles + smoothstep
-      const sourceHandle = fromFull
-        ? `${ref.fromTable}.${ref.fromColumns[0]}-source`
-        : `${ref.fromTable}-source`
-      const targetHandle = toFull
-        ? `${ref.toTable}.${ref.toColumns[0]}-target`
-        : `${ref.toTable}-target`
+      // One or both ends are stubs — simple handles
+      const sourceHandle = fromFull ? undefined : `${ref.fromTable}-source`
+      const targetHandle = toFull ? undefined : `${ref.toTable}-target`
 
       edges.push({
         id: ref.id,
@@ -101,6 +106,10 @@ export function buildFocusGraph(
         sourceHandle,
         targetHandle,
         type: 'smoothstep',
+        data: {
+          ...(fromFull ? { fromCol: ref.fromColumns[0] } : {}),
+          ...(toFull ? { toCol: ref.toColumns[0] } : {}),
+        },
       })
     }
   }

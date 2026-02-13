@@ -9,6 +9,7 @@ import { parseResultToConceptualFlow } from '../parser/conceptualToFlow'
 import { layoutNodes } from './layoutEngine'
 import * as storage from '../persistence/gitStorage'
 import type { DV2Metadata, StoredLayout } from '../types'
+import { assignEdgeHandles } from './edgeHandles'
 import { TableNode } from './TableNode'
 import { EnumNode } from './EnumNode'
 import { EREdge } from './EREdge'
@@ -72,24 +73,6 @@ function filterCollapsedSatellites(
   const filteredEdges = edges.filter((e) => !hiddenNodeIds.has(e.source) && !hiddenNodeIds.has(e.target))
 
   return { nodes: filteredNodes, edges: filteredEdges }
-}
-
-function assignEdgeHandles(nodes: Node[], edges: Edge[]): Edge[] {
-  const posMap = new Map(nodes.map((n) => [n.id, n.position]))
-  return edges.map((e) => {
-    const sp = posMap.get(e.source)
-    const tp = posMap.get(e.target)
-    if (!sp || !tp) return e
-    const fromCol = (e.data as any)?.fromCol
-    const toCol = (e.data as any)?.toCol
-    if (!fromCol || !toCol) return e
-    const exitRight = tp.x >= sp.x
-    return {
-      ...e,
-      sourceHandle: `${e.source}.${fromCol}-${exitRight ? 'R' : 'L'}-src`,
-      targetHandle: `${e.target}.${toCol}-${exitRight ? 'L' : 'R'}-tgt`,
-    }
-  })
 }
 
 function DiagramPanelInner() {

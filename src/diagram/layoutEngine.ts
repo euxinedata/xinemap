@@ -59,6 +59,33 @@ function removeOverlaps(nodes: Node[], padding: number = 40): Node[] {
   return positioned.map((p) => ({ ...p.node, position: { x: p.x, y: p.y } }))
 }
 
+export function layoutFocusGraph(nodes: Node[], focusedId: string): Node[] {
+  const center = nodes.find((n) => n.id === focusedId)
+  const others = nodes.filter((n) => n.id !== focusedId)
+
+  const centerSize = center ? getNodeSize(center) : { width: 250, height: 200 }
+  const count = others.length
+  const radius = Math.max(300, count * 80)
+
+  const laid = nodes.map((n) => {
+    if (n.id === focusedId) {
+      return { ...n, position: { x: -centerSize.width / 2, y: -centerSize.height / 2 } }
+    }
+    const idx = others.indexOf(n)
+    const angle = (idx / count) * 2 * Math.PI - Math.PI / 2 // start from top
+    const size = getNodeSize(n)
+    return {
+      ...n,
+      position: {
+        x: Math.cos(angle) * radius - size.width / 2,
+        y: Math.sin(angle) * radius - size.height / 2,
+      },
+    }
+  })
+
+  return removeOverlaps(laid, 60)
+}
+
 export async function layoutNodes(nodes: Node[], edges: Edge[], mode: LayoutMode = 'snowflake'): Promise<Node[]> {
   const children = nodes.map((node) => {
     const { width, height } = getNodeSize(node)

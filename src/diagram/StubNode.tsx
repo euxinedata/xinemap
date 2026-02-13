@@ -1,22 +1,18 @@
 import { memo } from 'react'
 import { Handle, Position, type NodeProps } from '@xyflow/react'
+import type { DV2EntityType } from '../types'
+import { DV2_COLORS } from './dv2Colors'
 
 type StubNodeData = {
   label: string
-  entityType?: string
-  headerColor?: string
+  entityType?: DV2EntityType
   onExpand: () => void
 }
 
-const typeColors: Record<string, string> = {
-  hub: '#6495ED',
-  satellite: '#D4A017',
-  link: '#CD5C5C',
-}
-
 function StubNodeComponent({ data, id }: NodeProps) {
-  const { label, entityType, headerColor, onExpand } = data as StubNodeData
-  const color = headerColor ?? (entityType ? typeColors[entityType] : undefined) ?? '#6b7280'
+  const { label, entityType, onExpand } = data as StubNodeData
+  const dv2Colors = entityType ? DV2_COLORS[entityType] : undefined
+  const color = dv2Colors?.bg ?? '#6b7280'
 
   return (
     <div

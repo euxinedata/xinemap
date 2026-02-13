@@ -1,4 +1,4 @@
-import { memo } from 'react'
+import { memo, useState } from 'react'
 import { Handle, Position, type NodeProps } from '@xyflow/react'
 import type { TableInfo, DV2EntityType } from '../types'
 import { useDiagramStore } from '../store/useDiagramStore'
@@ -6,12 +6,21 @@ import { DV2_COLORS } from './dv2Colors'
 
 type TableNodeData = { table: TableInfo; dv2EntityType?: DV2EntityType; satelliteCount?: number; isCollapsed?: boolean; onCollapse?: () => void }
 
+function isKeyColumn(col: { isPrimaryKey: boolean; isForeignKey: boolean; dv2Role?: string }): boolean {
+  return col.isPrimaryKey || col.isForeignKey || !!col.dv2Role
+}
+
 function TableNodeComponent({ data, id }: NodeProps) {
   const { table, dv2EntityType, satelliteCount, isCollapsed, onCollapse } = data as TableNodeData
   const dv2Colors = dv2EntityType ? DV2_COLORS[dv2EntityType] : undefined
   const headerColor = dv2Colors?.bg ?? table.headerColor ?? '#374151'
   const schemaPrefix = table.schema && table.schema !== 'public' ? `${table.schema}.` : ''
   const borderColor = dv2Colors?.border
+
+  const keyColumns = table.columns.filter(isKeyColumn)
+  const payloadColumns = table.columns.filter((c) => !isKeyColumn(c))
+  const [expanded, setExpanded] = useState(false)
+  const visibleColumns = expanded ? table.columns : keyColumns
 
   return (
     <div
@@ -60,7 +69,7 @@ function TableNodeComponent({ data, id }: NodeProps) {
         )}
       </div>
       <div className="divide-y divide-[var(--c-divide)]">
-        {table.columns.map((col) => (
+        {visibleColumns.map((col) => (
           <div key={col.name} className={`relative px-3 py-1.5 flex items-center justify-between gap-3 text-[var(--c-text-2)]${col.isInjected ? ' opacity-50' : ''}`}>
             <Handle type="target" position={Position.Left} id={`${id}.${col.name}-L-tgt`} className="!w-2 !h-2" style={{ background: 'var(--c-edge)' }} />
             <Handle type="source" position={Position.Left} id={`${id}.${col.name}-L-src`} className="!w-2 !h-2" style={{ background: 'var(--c-edge)' }} />
@@ -90,6 +99,14 @@ function TableNodeComponent({ data, id }: NodeProps) {
             <Handle type="source" position={Position.Right} id={`${id}.${col.name}-R-src`} className="!w-2 !h-2" style={{ background: 'var(--c-edge)' }} />
           </div>
         ))}
+        {payloadColumns.length > 0 && (
+          <div
+            className="px-3 py-1 text-center text-[var(--c-text-4)] cursor-pointer hover:text-[var(--c-text-2)] hover:bg-[var(--c-bg-2)]"
+            onClick={(e) => { e.stopPropagation(); setExpanded(!expanded) }}
+          >
+            {expanded ? 'Show less' : `+${payloadColumns.length} more`}
+          </div>
+        )}
       </div>
     </div>
   )

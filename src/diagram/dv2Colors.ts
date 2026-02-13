@@ -6,3 +6,12 @@ export const DV2_COLORS: Record<DV2EntityType, { bg: string; border: string; han
   link:      { bg: '#27AE60', border: '#58D68D', handle: '#1E8449' },
   reference: { bg: '#5D6D7E', border: '#85929E', handle: '#4A5568' },
 }
+
+export function dv2EdgeColor(
+  srcType: DV2EntityType | undefined,
+  tgtType: DV2EntityType | undefined,
+): string | undefined {
+  const child = [srcType, tgtType].find((t) => t === 'satellite' || t === 'link' || t === 'reference')
+  if (child) return DV2_COLORS[child].border
+  return undefined
+}

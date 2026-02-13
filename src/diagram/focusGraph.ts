@@ -1,5 +1,6 @@
 import type { Node, Edge } from '@xyflow/react'
 import type { ParseResult, RefInfo } from '../types'
+import { dv2EdgeColor } from './dv2Colors'
 
 const cardinalityMap: Record<RefInfo['type'], [string, string]> = {
   '1-1': ['1', '1'],
@@ -84,6 +85,8 @@ export function buildFocusGraph(
     const fromFull = visibleFull.has(ref.fromTable)
     const toFull = visibleFull.has(ref.toTable)
     const [srcCard, tgtCard] = cardinalityMap[ref.type]
+    const strokeColor = dv2EdgeColor(parseResult.dv2Metadata.get(ref.fromTable)?.entityType, parseResult.dv2Metadata.get(ref.toTable)?.entityType)
+    const style = strokeColor ? { stroke: strokeColor } : undefined
 
     if (fromFull && toFull) {
       // Both full — use fromCol/toCol for dynamic handle assignment
@@ -92,6 +95,7 @@ export function buildFocusGraph(
         source: ref.fromTable,
         target: ref.toTable,
         type: 'erEdge',
+        style,
         data: { sourceCardinality: srcCard, targetCardinality: tgtCard, fromCol: ref.fromColumns[0], toCol: ref.toColumns[0] },
       })
     } else {
@@ -106,6 +110,7 @@ export function buildFocusGraph(
         sourceHandle,
         targetHandle,
         type: 'smoothstep',
+        style,
         data: {
           ...(fromFull ? { fromCol: ref.fromColumns[0] } : {}),
           ...(toFull ? { toCol: ref.toColumns[0] } : {}),

@@ -47,6 +47,16 @@ function FocusModalInner({ tableId, onClose }: FocusModalProps) {
     })
   }, [])
 
+  // Recalculate radial layout from scratch
+  const handleRelayout = useCallback(() => {
+    if (!parseResult) return
+    const { nodes, edges } = buildFocusGraph(parseResult, currentTableId, expandedIds, handleExpand, handleCollapse)
+    const laid = layoutFocusGraph(nodes, currentTableId)
+    setModalNodes(laid)
+    setModalEdges(assignEdgeHandles(laid, edges))
+    requestAnimationFrame(() => fitView({ padding: 0.2 }))
+  }, [parseResult, currentTableId, expandedIds, handleExpand, handleCollapse, fitView])
+
   // Double-click any node → make it the center
   const handleNodeDoubleClick = useCallback((_: React.MouseEvent, node: Node) => {
     setCurrentTableId(node.id)
@@ -113,6 +123,12 @@ function FocusModalInner({ tableId, onClose }: FocusModalProps) {
             }`}
           >
             Edit
+          </button>
+          <button
+            onClick={handleRelayout}
+            className="text-[var(--c-text-4)] hover:text-[var(--c-text-1)] text-xs px-2 py-1 rounded cursor-pointer"
+          >
+            Layout
           </button>
           <button
             onClick={onClose}

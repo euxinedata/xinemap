@@ -1,5 +1,6 @@
 import type { Node, Edge } from '@xyflow/react'
 import type { ParseResult, RefInfo } from '../types'
+import { dv2EdgeColor } from '../diagram/dv2Colors'
 
 const cardinalityMap: Record<RefInfo['type'], [string, string]> = {
   '1-1': ['1', '1'],
@@ -40,7 +41,8 @@ export function parseResultToFlow(result: ParseResult): { nodes: Node[]; edges: 
   }
 
   for (const ref of result.refs) {
-    const strokeColor = ref.color ?? '#6b7280'
+    const dv2Color = dv2EdgeColor(result.dv2Metadata.get(ref.fromTable)?.entityType, result.dv2Metadata.get(ref.toTable)?.entityType)
+    const strokeColor = ref.color ?? dv2Color ?? '#6b7280'
     const [srcCard, tgtCard] = cardinalityMap[ref.type]
     edges.push({
       id: ref.id,

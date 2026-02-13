@@ -8,6 +8,7 @@ import { layoutFocusGraph } from './layoutEngine'
 import { TableNode } from './TableNode'
 import { StubNode } from './StubNode'
 import { EREdge } from './EREdge'
+import { FocusEditPanel } from './FocusEditPanel'
 
 const nodeTypes = { tableNode: TableNode, stubNode: StubNode }
 const edgeTypes = { erEdge: EREdge }
@@ -22,6 +23,7 @@ function FocusModalInner({ tableId, onClose }: FocusModalProps) {
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set())
   const [modalNodes, setModalNodes] = useState<Node[]>([])
   const [modalEdges, setModalEdges] = useState<Edge[]>([])
+  const [editOpen, setEditOpen] = useState(false)
   const parseResult = useEditorStore((s) => s.parseResult)
   const { fitView } = useReactFlow()
 
@@ -101,30 +103,47 @@ function FocusModalInner({ tableId, onClose }: FocusModalProps) {
       {/* Header */}
       <div className="flex items-center gap-3 px-4 py-2 border-b border-[var(--c-border-s)] bg-[var(--c-bg-1)]">
         <span className="text-sm font-semibold text-[var(--c-text-1)]">{displayName}</span>
-        <button
-          onClick={onClose}
-          className="ml-auto text-[var(--c-text-4)] hover:text-[var(--c-text-1)] text-sm px-2 py-1 cursor-pointer"
-        >
-          Close
-        </button>
+        <div className="ml-auto flex gap-1">
+          <button
+            onClick={() => setEditOpen((o) => !o)}
+            className={`text-xs px-2 py-1 rounded cursor-pointer ${
+              editOpen
+                ? 'bg-blue-600 text-white'
+                : 'text-[var(--c-text-4)] hover:text-[var(--c-text-1)]'
+            }`}
+          >
+            Edit
+          </button>
+          <button
+            onClick={onClose}
+            className="text-[var(--c-text-4)] hover:text-[var(--c-text-1)] text-xs px-2 py-1 cursor-pointer"
+          >
+            Close
+          </button>
+        </div>
       </div>
 
-      {/* ReactFlow canvas */}
-      <div className="flex-1 min-h-0 relative">
-        <div className="absolute inset-0">
-          <ReactFlow
-            nodes={modalNodes}
-            edges={modalEdges}
-            nodeTypes={nodeTypes}
-            edgeTypes={edgeTypes}
-            onNodesChange={onNodesChange}
-            onEdgesChange={onEdgesChange}
-            onNodeDoubleClick={handleNodeDoubleClick}
-            proOptions={{ hideAttribution: true }}
-          >
-            <Controls />
-            <Background variant={BackgroundVariant.Dots} color="var(--c-dots)" />
-          </ReactFlow>
+      {/* Canvas + optional edit panel */}
+      <div className="flex-1 min-h-0 flex">
+        {editOpen && (
+          <FocusEditPanel tableId={currentTableId} onClose={() => setEditOpen(false)} />
+        )}
+        <div className="flex-1 relative">
+          <div className="absolute inset-0">
+            <ReactFlow
+              nodes={modalNodes}
+              edges={modalEdges}
+              nodeTypes={nodeTypes}
+              edgeTypes={edgeTypes}
+              onNodesChange={onNodesChange}
+              onEdgesChange={onEdgesChange}
+              onNodeDoubleClick={handleNodeDoubleClick}
+              proOptions={{ hideAttribution: true }}
+            >
+              <Controls />
+              <Background variant={BackgroundVariant.Dots} color="var(--c-dots)" />
+            </ReactFlow>
+          </div>
         </div>
       </div>
     </div>

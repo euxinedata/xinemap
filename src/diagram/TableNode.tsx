@@ -1,17 +1,23 @@
 import { memo } from 'react'
 import { Handle, Position, type NodeProps } from '@xyflow/react'
-import type { TableInfo } from '../types'
+import type { TableInfo, DV2EntityType } from '../types'
 import { useDiagramStore } from '../store/useDiagramStore'
+import { DV2_COLORS } from './dv2Colors'
 
-type TableNodeData = { table: TableInfo; satelliteCount?: number; isCollapsed?: boolean; onCollapse?: () => void }
+type TableNodeData = { table: TableInfo; dv2EntityType?: DV2EntityType; satelliteCount?: number; isCollapsed?: boolean; onCollapse?: () => void }
 
 function TableNodeComponent({ data, id }: NodeProps) {
-  const { table, satelliteCount, isCollapsed, onCollapse } = data as TableNodeData
-  const headerColor = table.headerColor ?? '#374151'
+  const { table, dv2EntityType, satelliteCount, isCollapsed, onCollapse } = data as TableNodeData
+  const dv2Colors = dv2EntityType ? DV2_COLORS[dv2EntityType] : undefined
+  const headerColor = dv2Colors?.bg ?? table.headerColor ?? '#374151'
   const schemaPrefix = table.schema && table.schema !== 'public' ? `${table.schema}.` : ''
+  const borderColor = dv2Colors?.border
 
   return (
-    <div className="rounded-md border border-[var(--c-border-s)] bg-[var(--c-bg-3)] text-xs min-w-[180px] shadow-lg">
+    <div
+      className="rounded-md border bg-[var(--c-bg-3)] text-xs min-w-[180px] shadow-lg"
+      style={{ borderColor: borderColor ?? 'var(--c-border-s)' }}
+    >
       <div
         className="px-3 py-2 font-semibold text-white rounded-t-md flex items-center justify-between"
         style={{ backgroundColor: headerColor }}

@@ -17,7 +17,7 @@ export function parseResultToFlow(result: ParseResult): { nodes: Node[]; edges: 
       id: table.id,
       type: 'tableNode',
       position: { x: 0, y: 0 },
-      data: { table },
+      data: { table, dv2EntityType: result.dv2Metadata.get(table.id)?.entityType },
     })
   }
 

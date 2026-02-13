@@ -74,6 +74,24 @@ function filterCollapsedSatellites(
   return { nodes: filteredNodes, edges: filteredEdges }
 }
 
+function assignEdgeHandles(nodes: Node[], edges: Edge[]): Edge[] {
+  const posMap = new Map(nodes.map((n) => [n.id, n.position]))
+  return edges.map((e) => {
+    const sp = posMap.get(e.source)
+    const tp = posMap.get(e.target)
+    if (!sp || !tp) return e
+    const fromCol = (e.data as any)?.fromCol
+    const toCol = (e.data as any)?.toCol
+    if (!fromCol || !toCol) return e
+    const exitRight = tp.x >= sp.x
+    return {
+      ...e,
+      sourceHandle: `${e.source}.${fromCol}-${exitRight ? 'R' : 'L'}-src`,
+      targetHandle: `${e.target}.${toCol}-${exitRight ? 'L' : 'R'}-tgt`,
+    }
+  })
+}
+
 function DiagramPanelInner() {
   const { nodes, edges, setNodes, setEdges, onNodesChange, onEdgesChange, layoutMode, setLayoutMode, viewMode, setViewMode, storedLayout, setStoredLayout } = useDiagramStore()
   const collapsedHubs = useDiagramStore((s) => s.collapsedHubs)
@@ -91,11 +109,7 @@ function DiagramPanelInner() {
       positions[n.id] = { x: n.position.x, y: n.position.y }
     }
     const prev = useDiagramStore.getState().storedLayout
-    const updated: StoredLayout = {
-      ...prev,
-      [viewMode]: positions,
-      layoutMode,
-    }
+    const updated: StoredLayout = { ...prev, [viewMode]: positions, layoutMode }
     setStoredLayout(updated)
 
     const projectId = useProjectStore.getState().currentProjectId
@@ -141,14 +155,14 @@ function DiagramPanelInner() {
             return pos ? { ...n, position: { x: pos.x, y: pos.y } } : n
           })
           setNodes(merged)
-          setEdges(visibleEdges)
+          setEdges(assignEdgeHandles(merged, visibleEdges))
           fitView({ padding: 0.2 })
           savePositions(merged)
         })
       } else {
         if (!stale) {
           setNodes(laid)
-          setEdges(visibleEdges)
+          setEdges(assignEdgeHandles(laid, visibleEdges))
           fitView({ padding: 0.2 })
         }
       }
@@ -157,7 +171,7 @@ function DiagramPanelInner() {
       layoutNodes(visibleNodes, visibleEdges, layoutMode).then((laid) => {
         if (!stale) {
           setNodes(laid)
-          setEdges(visibleEdges)
+          setEdges(assignEdgeHandles(laid, visibleEdges))
           fitView({ padding: 0.2 })
           savePositions(laid)
         }
@@ -185,12 +199,8 @@ function DiagramPanelInner() {
     if (hasStoredPositions && !window.confirm('Recalculate layout? Manual positions will be lost.')) {
       return
     }
-    // Clear stored positions for current view mode, then run layout
-    const updated: StoredLayout = {
-      ...storedLayout,
-      [viewMode]: undefined,
-      layoutMode: mode,
-    }
+    // Clear stored positions for current view, keep other view's positions
+    const updated: StoredLayout = { ...storedLayout, [viewMode]: undefined, layoutMode: mode }
     setStoredLayout(updated)
     setLayoutMode(mode)
 
@@ -205,18 +215,14 @@ function DiagramPanelInner() {
 
     layoutNodes(visibleNodes, visibleEdges, mode).then((laid) => {
       setNodes(laid)
-      setEdges(visibleEdges)
+      setEdges(assignEdgeHandles(laid, visibleEdges))
       fitView({ padding: 0.2 })
       // Save new positions
       const positions: Record<string, { x: number; y: number }> = {}
       for (const n of laid) {
         positions[n.id] = { x: n.position.x, y: n.position.y }
       }
-      const finalLayout: StoredLayout = {
-        ...updated,
-        [viewMode]: positions,
-        layoutMode: mode,
-      }
+      const finalLayout: StoredLayout = { ...updated, [viewMode]: positions, layoutMode: mode }
       setStoredLayout(finalLayout)
       const projectId = useProjectStore.getState().currentProjectId
       if (projectId) storage.saveLayout(projectId, finalLayout)
@@ -228,17 +234,18 @@ function DiagramPanelInner() {
     setViewMode(next)
   }, [viewMode, setViewMode])
 
-  // Save positions on node drag stop
+  // Save positions and reassign edge handles on node drag stop
   const handleNodeDragStop = useCallback((_: React.MouseEvent, _node: Node, draggedNodes: Node[]) => {
-    // Update positions for all dragged nodes in the current store nodes
     const currentNodes = useDiagramStore.getState().nodes
+    const currentEdges = useDiagramStore.getState().edges
     const draggedMap = new Map(draggedNodes.map((n) => [n.id, n.position]))
     const updatedNodes = currentNodes.map((n) => {
       const pos = draggedMap.get(n.id)
       return pos ? { ...n, position: pos } : n
     })
+    setEdges(assignEdgeHandles(updatedNodes, currentEdges))
     savePositions(updatedNodes)
-  }, [savePositions])
+  }, [savePositions, setEdges])
 
   const handleNodeDoubleClick = useCallback((_: React.MouseEvent, node: Node) => {
     setFocusedTableId(node.id)

@@ -46,11 +46,9 @@ export function parseResultToFlow(result: ParseResult): { nodes: Node[]; edges: 
       id: ref.id,
       source: ref.fromTable,
       target: ref.toTable,
-      sourceHandle: `${ref.fromTable}.${ref.fromColumns[0]}-source`,
-      targetHandle: `${ref.toTable}.${ref.toColumns[0]}-target`,
       type: 'erEdge',
       style: { stroke: strokeColor },
-      data: { sourceCardinality: srcCard, targetCardinality: tgtCard },
+      data: { sourceCardinality: srcCard, targetCardinality: tgtCard, fromCol: ref.fromColumns[0], toCol: ref.toColumns[0] },
     })
   }
 

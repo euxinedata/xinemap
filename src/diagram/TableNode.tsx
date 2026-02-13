@@ -54,13 +54,8 @@ function TableNodeComponent({ data, id }: NodeProps) {
       <div className="divide-y divide-[var(--c-divide)]">
         {table.columns.map((col) => (
           <div key={col.name} className={`relative px-3 py-1.5 flex items-center justify-between gap-3 text-[var(--c-text-2)]${col.isInjected ? ' opacity-50' : ''}`}>
-            <Handle
-              type="target"
-              position={Position.Left}
-              id={`${id}.${col.name}-target`}
-              className="!w-2 !h-2"
-              style={{ background: 'var(--c-edge)' }}
-            />
+            <Handle type="target" position={Position.Left} id={`${id}.${col.name}-L-tgt`} className="!w-2 !h-2" style={{ background: 'var(--c-edge)' }} />
+            <Handle type="source" position={Position.Left} id={`${id}.${col.name}-L-src`} className="!w-2 !h-2" style={{ background: 'var(--c-edge)' }} />
             <span className="flex items-center gap-1.5">
               <span>{col.name}</span>
               {col.isPrimaryKey && (
@@ -83,13 +78,8 @@ function TableNodeComponent({ data, id }: NodeProps) {
               )}
             </span>
             <span className="text-[var(--c-text-4)]">{col.type}</span>
-            <Handle
-              type="source"
-              position={Position.Right}
-              id={`${id}.${col.name}-source`}
-              className="!w-2 !h-2"
-              style={{ background: 'var(--c-edge)' }}
-            />
+            <Handle type="target" position={Position.Right} id={`${id}.${col.name}-R-tgt`} className="!w-2 !h-2" style={{ background: 'var(--c-edge)' }} />
+            <Handle type="source" position={Position.Right} id={`${id}.${col.name}-R-src`} className="!w-2 !h-2" style={{ background: 'var(--c-edge)' }} />
           </div>
         ))}
       </div>

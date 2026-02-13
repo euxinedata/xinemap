@@ -11,11 +11,15 @@ function SatelliteNodeComponent({ data }: NodeProps) {
       className="flex items-center justify-center rounded-lg border-2 text-sm font-semibold text-white px-6 py-3 min-w-[180px]"
       style={{ backgroundColor: c.bg, borderColor: c.border }}
     >
-      <Handle type="target" position={Position.Top} style={{ background: c.handle }} className="!w-2 !h-2" />
-      <Handle type="target" position={Position.Left} style={{ background: c.handle }} className="!w-2 !h-2" />
+      <Handle type="target" position={Position.Top} id="top-target" style={{ background: c.handle }} className="!w-2 !h-2" />
+      <Handle type="source" position={Position.Top} id="top-source" style={{ background: c.handle }} className="!w-2 !h-2" />
+      <Handle type="target" position={Position.Right} id="right-target" style={{ background: c.handle }} className="!w-2 !h-2" />
+      <Handle type="source" position={Position.Right} id="right-source" style={{ background: c.handle }} className="!w-2 !h-2" />
       {name}
-      <Handle type="source" position={Position.Bottom} style={{ background: c.handle }} className="!w-2 !h-2" />
-      <Handle type="source" position={Position.Right} style={{ background: c.handle }} className="!w-2 !h-2" />
+      <Handle type="target" position={Position.Bottom} id="bottom-target" style={{ background: c.handle }} className="!w-2 !h-2" />
+      <Handle type="source" position={Position.Bottom} id="bottom-source" style={{ background: c.handle }} className="!w-2 !h-2" />
+      <Handle type="target" position={Position.Left} id="left-target" style={{ background: c.handle }} className="!w-2 !h-2" />
+      <Handle type="source" position={Position.Left} id="left-source" style={{ background: c.handle }} className="!w-2 !h-2" />
     </div>
   )
 }

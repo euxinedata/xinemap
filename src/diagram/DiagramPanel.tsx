@@ -282,6 +282,16 @@ function DiagramPanelInner() {
         <Controls />
         <Background variant={BackgroundVariant.Dots} color="var(--c-dots)" />
         <Panel position="top-right" className="flex gap-1">
+          <button
+            onClick={() => useDiagramStore.getState().setSearchOpen(true)}
+            className="bg-[var(--c-bg-3)] border border-[var(--c-border-s)] text-[var(--c-text-3)] hover:text-[var(--c-text-1)] text-xs px-2 py-1 rounded flex items-center gap-1"
+            title="Search (⌘K)"
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" />
+            </svg>
+            Search
+          </button>
           <div ref={menuRef} className="relative">
             <button
               onClick={() => setLayoutMenuOpen((o) => !o)}
@@ -312,7 +322,7 @@ function DiagramPanelInner() {
             {viewMode === 'relational' ? 'Relational' : 'Conceptual'}
           </button>
         </Panel>
-        <CommandPalette />
+        <CommandPalette onFocusTable={setFocusedTableId} />
       </ReactFlow>
       {focusedTableId && (
         <FocusModal tableId={focusedTableId} onClose={() => setFocusedTableId(null)} />

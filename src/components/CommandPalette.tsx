@@ -63,7 +63,11 @@ function searchEntities(query: string): SearchMatch[] {
   return results
 }
 
-export function CommandPalette() {
+interface CommandPaletteProps {
+  onFocusTable?: (tableId: string) => void
+}
+
+export function CommandPalette({ onFocusTable }: CommandPaletteProps) {
   const searchOpen = useDiagramStore((s) => s.searchOpen)
   const setSearchOpen = useDiagramStore((s) => s.setSearchOpen)
   const [query, setQuery] = useState('')
@@ -101,7 +105,7 @@ export function CommandPalette() {
   const searchResults = scaffoldCmd ? [] : searchEntities(query)
   const totalResults = scaffoldCmd ? 1 : searchResults.length
 
-  const handleSelect = useCallback((index: number) => {
+  const handleSelect = useCallback((index: number, focus?: boolean) => {
     if (scaffoldCmd) {
       const text = generateScaffold(scaffoldCmd.type, scaffoldCmd.name, scaffoldCmd.parentHub, scaffoldCmd.hubs)
       const current = useEditorStore.getState().dbml
@@ -113,10 +117,16 @@ export function CommandPalette() {
     const match = searchResults[index]
     if (!match) return
 
+    if (focus && match.type === 'table' && onFocusTable) {
+      onFocusTable(match.tableId)
+      close()
+      return
+    }
+
     const nodeId = match.tableId
     reactFlow.fitView({ nodes: [{ id: nodeId }], duration: 300, padding: 0.5 })
     close()
-  }, [scaffoldCmd, searchResults, reactFlow, close])
+  }, [scaffoldCmd, searchResults, reactFlow, close, onFocusTable])
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Escape') {
@@ -129,7 +139,7 @@ export function CommandPalette() {
       setSelectedIndex((i) => Math.max(i - 1, 0))
     } else if (e.key === 'Enter') {
       e.preventDefault()
-      handleSelect(selectedIndex)
+      handleSelect(selectedIndex, e.shiftKey)
     }
   }, [close, totalResults, selectedIndex, handleSelect])
 
@@ -180,7 +190,20 @@ export function CommandPalette() {
             >
               <span className={`w-2 h-2 rounded-full ${typeColor(match.type)} shrink-0`} />
               <span className="truncate">{match.matchText}</span>
-              <span className="ml-auto text-[10px] text-[var(--c-text-4)]">{match.type}</span>
+              <span className="ml-auto flex items-center gap-1.5">
+                <span className="text-[10px] text-[var(--c-text-4)]">{match.type}</span>
+                {match.type === 'table' && onFocusTable && (
+                  <button
+                    className="p-0.5 rounded hover:bg-[var(--c-bg-2)] text-[var(--c-text-4)] hover:text-[var(--c-text-1)] cursor-pointer"
+                    title="Open focus view (⇧↵)"
+                    onClick={(e) => { e.stopPropagation(); handleSelect(i, true) }}
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M15 3h6v6" /><path d="M9 21H3v-6" /><path d="M21 3l-7 7" /><path d="M3 21l7-7" />
+                    </svg>
+                  </button>
+                )}
+              </span>
             </div>
           ))}
           {!scaffoldCmd && query && searchResults.length === 0 && (

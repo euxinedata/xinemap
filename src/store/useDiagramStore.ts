@@ -19,6 +19,7 @@ interface DiagramState {
   setViewMode: (mode: ViewMode) => void
   setSearchOpen: (open: boolean) => void
   toggleHubCollapse: (hubId: string) => void
+  setCollapsedHubs: (ids: Set<string>) => void
   setStoredLayout: (layout: StoredLayout | null) => void
   onNodesChange: (changes: NodeChange[]) => void
   onEdgesChange: (changes: EdgeChange[]) => void
@@ -43,6 +44,7 @@ export const useDiagramStore = create<DiagramState>()((set) => ({
     else next.add(hubId)
     return { collapsedHubs: next }
   }),
+  setCollapsedHubs: (collapsedHubs) => set({ collapsedHubs }),
   setStoredLayout: (storedLayout) => set({ storedLayout }),
   onNodesChange: (changes) => set((state) => ({ nodes: applyNodeChanges(changes, state.nodes) })),
   onEdgesChange: (changes) => set((state) => ({ edges: applyEdgeChanges(changes, state.edges) })),

@@ -24,19 +24,24 @@ function TableNodeComponent({ data, id }: NodeProps) {
       >
         <span>
           {schemaPrefix}{table.name}
-          {isCollapsed && satelliteCount != null && (
-            <span className="ml-2 text-[10px] font-normal opacity-80">{satelliteCount} sat</span>
-          )}
         </span>
         {satelliteCount != null && satelliteCount > 0 && (
           <button
-            className="ml-2 text-[10px] opacity-70 hover:opacity-100 cursor-pointer"
+            className="ml-2 flex items-center gap-1 opacity-70 hover:opacity-100 cursor-pointer"
             onClick={(e) => {
               e.stopPropagation()
               useDiagramStore.getState().toggleHubCollapse(id)
             }}
+            title={isCollapsed ? `Show ${satelliteCount} satellites` : `Hide ${satelliteCount} satellites`}
           >
-            {isCollapsed ? '\u25B6' : '\u25BC'}
+            <span className="text-[10px] text-white font-normal">{satelliteCount}</span>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" opacity={isCollapsed ? 0.4 : 1}>
+              <path d="m13.5 6.5-3.148-3.148a1.205 1.205 0 0 0-1.704 0L6.352 5.648a1.205 1.205 0 0 0 0 1.704L9.5 10.5" />
+              <path d="M16.5 7.5 19 5" />
+              <path d="m17.5 10.5 3.148 3.148a1.205 1.205 0 0 1 0 1.704l-2.296 2.296a1.205 1.205 0 0 1-1.704 0L13.5 14.5" />
+              <path d="M9 21a6 6 0 0 0-6-6" />
+              <path d="M9.352 10.648a1.205 1.205 0 0 0 0 1.704l2.296 2.296a1.205 1.205 0 0 0 1.704 0l4.296-4.296a1.205 1.205 0 0 0 0-1.704l-2.296-2.296a1.205 1.205 0 0 0-1.704 0z" />
+            </svg>
           </button>
         )}
         {onCollapse && (

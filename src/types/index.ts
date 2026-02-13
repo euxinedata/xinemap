@@ -135,6 +135,7 @@ export interface StoredLayout {
   relational?: Record<string, { x: number; y: number }>
   conceptual?: Record<string, { x: number; y: number }>
   layoutMode: string
+  collapsedIds?: string[]
 }
 
 // --- Source Configuration (DataVault4dbt) ---

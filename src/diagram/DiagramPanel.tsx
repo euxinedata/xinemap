@@ -43,7 +43,7 @@ function filterCollapsedSatellites(
     if (meta.entityType === 'satellite') {
       for (const parentHub of meta.parentHubs) {
         const pm = dv2Metadata.get(parentHub)
-        if (pm?.entityType === 'hub') {
+        if (pm?.entityType === 'hub' || pm?.entityType === 'link') {
           satCountByHub.set(parentHub, (satCountByHub.get(parentHub) ?? 0) + 1)
         }
       }
@@ -109,7 +109,8 @@ function DiagramPanelInner() {
       positions[n.id] = { x: n.position.x, y: n.position.y }
     }
     const prev = useDiagramStore.getState().storedLayout
-    const updated: StoredLayout = { ...prev, [viewMode]: positions, layoutMode }
+    const collapsed = useDiagramStore.getState().collapsedHubs
+    const updated: StoredLayout = { ...prev, [viewMode]: positions, layoutMode, collapsedIds: [...collapsed] }
     setStoredLayout(updated)
 
     const projectId = useProjectStore.getState().currentProjectId
@@ -179,6 +180,21 @@ function DiagramPanelInner() {
     }
     return () => { stale = true }
   }, [parseResult, viewMode, collapsedHubs, setNodes, setEdges, fitView]) // Note: layoutMode intentionally excluded — auto-layout only on explicit click
+
+  // Persist collapsed state when it changes
+  useEffect(() => {
+    const prev = useDiagramStore.getState().storedLayout
+    if (!prev) return
+    const updated: StoredLayout = { ...prev, collapsedIds: [...collapsedHubs] }
+    setStoredLayout(updated)
+    const projectId = useProjectStore.getState().currentProjectId
+    if (projectId) {
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
+      saveTimerRef.current = setTimeout(() => {
+        storage.saveLayout(projectId, updated)
+      }, 500)
+    }
+  }, [collapsedHubs, setStoredLayout])
 
   // Close dropdown on outside click
   useEffect(() => {

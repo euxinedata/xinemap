@@ -67,6 +67,7 @@ export const useProjectStore = create<ProjectState>()((set) => ({
     const layout = await storage.getLayout(id)
     const diagramStore = useDiagramStore.getState()
     diagramStore.setStoredLayout(layout)
+    diagramStore.setCollapsedHubs(new Set(layout?.collapsedIds ?? []))
     if (layout?.layoutMode === 'snowflake' || layout?.layoutMode === 'dense') {
       diagramStore.setLayoutMode(layout.layoutMode)
     }
@@ -89,6 +90,7 @@ export const useProjectStore = create<ProjectState>()((set) => ({
     useEditorStore.getState().setDbml('')
     useSourceConfigStore.getState().setSourceConfig({})
     useDiagramStore.getState().setStoredLayout(null)
+    useDiagramStore.getState().setCollapsedHubs(new Set())
     set({ currentProjectId: null, commitHistory: [] })
   },
 

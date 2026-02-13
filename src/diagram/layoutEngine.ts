@@ -1,5 +1,6 @@
 import ELK from 'elkjs/lib/elk.bundled.js'
 import type { Node, Edge } from '@xyflow/react'
+import type { LayoutMode } from '../store/useDiagramStore'
 
 const elk = new ELK()
 
@@ -23,65 +24,70 @@ function getNodeSize(node: Node): { width: number; height: number } {
   return { width, height }
 }
 
-export async function layoutNodes(nodes: Node[], edges: Edge[], direction: 'TB' | 'LR' = 'LR'): Promise<Node[]> {
-  const isHorizontal = direction === 'LR'
-
-  const children = nodes.map((node) => {
-    const { width, height } = getNodeSize(node)
-    const table = (node.data as any)?.table
-    const ports: { id: string; properties: { 'port.side': string } }[] = []
-
-    if (table?.columns) {
-      for (const col of table.columns) {
-        ports.push({
-          id: `${node.id}.${col.name}-target`,
-          properties: { 'port.side': isHorizontal ? 'WEST' : 'NORTH' },
-        })
-        ports.push({
-          id: `${node.id}.${col.name}-source`,
-          properties: { 'port.side': isHorizontal ? 'EAST' : 'SOUTH' },
-        })
+function removeOverlaps(nodes: Node[], padding: number = 40): Node[] {
+  const positioned = nodes.map((n) => ({
+    node: n,
+    ...getNodeSize(n),
+    x: n.position.x,
+    y: n.position.y,
+  }))
+  for (let iter = 0; iter < 50; iter++) {
+    let moved = false
+    for (let i = 0; i < positioned.length; i++) {
+      for (let j = i + 1; j < positioned.length; j++) {
+        const a = positioned[i], b = positioned[j]
+        const overlapX = (a.width + b.width) / 2 + padding - Math.abs(a.x + a.width / 2 - b.x - b.width / 2)
+        const overlapY = (a.height + b.height) / 2 + padding - Math.abs(a.y + a.height / 2 - b.y - b.height / 2)
+        if (overlapX > 0 && overlapY > 0) {
+          const dx = a.x + a.width / 2 - b.x - b.width / 2
+          const dy = a.y + a.height / 2 - b.y - b.height / 2
+          if (overlapX < overlapY) {
+            const push = overlapX / 2
+            a.x += dx >= 0 ? push : -push
+            b.x -= dx >= 0 ? push : -push
+          } else {
+            const push = overlapY / 2
+            a.y += dy >= 0 ? push : -push
+            b.y -= dy >= 0 ? push : -push
+          }
+          moved = true
+        }
       }
     }
+    if (!moved) break
+  }
+  return positioned.map((p) => ({ ...p.node, position: { x: p.x, y: p.y } }))
+}
 
-    if (ports.length === 0) {
-      ports.push({
-        id: `${node.id}-target`,
-        properties: { 'port.side': isHorizontal ? 'WEST' : 'NORTH' },
-      })
-      ports.push({
-        id: `${node.id}-source`,
-        properties: { 'port.side': isHorizontal ? 'EAST' : 'SOUTH' },
-      })
-    }
-
-    return {
-      id: node.id,
-      width,
-      height,
-      ports,
-      properties: ports.length > 0
-        ? { 'org.eclipse.elk.portConstraints': 'FIXED_ORDER' }
-        : {},
-    }
+export async function layoutNodes(nodes: Node[], edges: Edge[], mode: LayoutMode = 'snowflake'): Promise<Node[]> {
+  const children = nodes.map((node) => {
+    const { width, height } = getNodeSize(node)
+    return { id: node.id, width, height }
   })
 
   const elkEdges = edges.map((e) => ({
     id: e.id,
-    sources: [e.sourceHandle ?? e.source],
-    targets: [e.targetHandle ?? e.target],
+    sources: [e.source],
+    targets: [e.target],
   }))
+
+  const layoutOptions: Record<string, string> = mode === 'snowflake'
+    ? {
+        'elk.algorithm': 'stress',
+        'elk.stress.desiredEdgeLength': '500',
+        'elk.spacing.nodeNode': '100',
+        'elk.separateConnectedComponents': 'true',
+        'elk.spacing.componentComponent': '150',
+      }
+    : {
+        'elk.algorithm': 'rectpacking',
+        'elk.spacing.nodeNode': '30',
+        'elk.rectpacking.desiredAspectRatio': '2.5',
+      }
 
   const graph = {
     id: 'root',
-    layoutOptions: {
-      'elk.algorithm': 'layered',
-      'elk.direction': isHorizontal ? 'RIGHT' : 'DOWN',
-      'elk.layered.spacing.nodeNodeBetweenLayers': '100',
-      'elk.spacing.nodeNode': '60',
-      'elk.layered.crossingMinimization.strategy': 'LAYER_SWEEP',
-      'elk.edgeRouting': 'ORTHOGONAL',
-    },
+    layoutOptions,
     children,
     edges: elkEdges,
   }
@@ -93,8 +99,10 @@ export async function layoutNodes(nodes: Node[], edges: Edge[], direction: 'TB' 
     posMap.set(child.id, { x: child.x ?? 0, y: child.y ?? 0 })
   }
 
-  return nodes.map((node) => ({
+  const laid = nodes.map((node) => ({
     ...node,
     position: posMap.get(node.id) ?? { x: 0, y: 0 },
   }))
+
+  return mode === 'snowflake' ? removeOverlaps(laid) : laid
 }

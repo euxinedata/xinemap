@@ -52,7 +52,7 @@ function FocusModalInner({ tableId, onClose }: FocusModalProps) {
     if (!parseResult) return
     let stale = false
     const { nodes, edges } = buildFocusGraph(parseResult, tableId, expandedIds, handleExpand, handleCollapse)
-    layoutNodes(nodes, edges, 'LR').then((laid) => {
+    layoutNodes(nodes, edges, 'snowflake').then((laid) => {
       if (!stale) {
         setModalNodes(laid)
         setModalEdges(edges)

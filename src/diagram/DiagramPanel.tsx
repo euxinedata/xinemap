@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { ReactFlow, ReactFlowProvider, Controls, Background, BackgroundVariant, Panel, useReactFlow, type Node, type Edge } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
-import { useDiagramStore, type LayoutDirection, type ViewMode } from '../store/useDiagramStore'
+import { useDiagramStore, type LayoutMode, type ViewMode } from '../store/useDiagramStore'
 import { useEditorStore } from '../store/useEditorStore'
 import { parseResultToFlow } from '../parser/dbmlToFlow'
 import { parseResultToConceptualFlow } from '../parser/conceptualToFlow'
@@ -73,10 +73,12 @@ function filterCollapsedSatellites(
 }
 
 function DiagramPanelInner() {
-  const { nodes, edges, setNodes, setEdges, onNodesChange, onEdgesChange, layoutDirection, setLayoutDirection, viewMode, setViewMode } = useDiagramStore()
+  const { nodes, edges, setNodes, setEdges, onNodesChange, onEdgesChange, layoutMode, setLayoutMode, viewMode, setViewMode } = useDiagramStore()
   const collapsedHubs = useDiagramStore((s) => s.collapsedHubs)
   const parseResult = useEditorStore((s) => s.parseResult)
   const [focusedTableId, setFocusedTableId] = useState<string | null>(null)
+  const [layoutMenuOpen, setLayoutMenuOpen] = useState(false)
+  const menuRef = useRef<HTMLDivElement>(null)
   const { fitView } = useReactFlow()
 
   useEffect(() => {
@@ -94,7 +96,7 @@ function DiagramPanelInner() {
         ? filterCollapsedSatellites(flowNodes, flowEdges, collapsedHubs, parseResult.dv2Metadata)
         : { nodes: flowNodes, edges: flowEdges }
 
-    layoutNodes(visibleNodes, visibleEdges, layoutDirection).then((laid) => {
+    layoutNodes(visibleNodes, visibleEdges, layoutMode).then((laid) => {
       if (!stale) {
         setNodes(laid)
         setEdges(visibleEdges)
@@ -102,20 +104,24 @@ function DiagramPanelInner() {
       }
     })
     return () => { stale = true }
-  }, [parseResult, layoutDirection, viewMode, collapsedHubs, setNodes, setEdges, fitView])
+  }, [parseResult, layoutMode, viewMode, collapsedHubs, setNodes, setEdges, fitView])
 
-  const handleAutoLayout = useCallback(() => {
-    if (nodes.length === 0) return
-    layoutNodes(nodes, edges, layoutDirection).then((laid) => {
-      setNodes(laid)
-      fitView({ padding: 0.2 })
-    })
-  }, [nodes, edges, layoutDirection, setNodes, fitView])
+  // Close dropdown on outside click
+  useEffect(() => {
+    if (!layoutMenuOpen) return
+    const handler = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as HTMLElement)) {
+        setLayoutMenuOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [layoutMenuOpen])
 
-  const toggleDirection = useCallback(() => {
-    const next: LayoutDirection = layoutDirection === 'LR' ? 'TB' : 'LR'
-    setLayoutDirection(next)
-  }, [layoutDirection, setLayoutDirection])
+  const handleLayoutSelect = useCallback((mode: LayoutMode) => {
+    setLayoutMode(mode)
+    setLayoutMenuOpen(false)
+  }, [setLayoutMode])
 
   const toggleView = useCallback(() => {
     const next: ViewMode = viewMode === 'relational' ? 'conceptual' : 'relational'
@@ -140,18 +146,29 @@ function DiagramPanelInner() {
         <Controls />
         <Background variant={BackgroundVariant.Dots} color="var(--c-dots)" />
         <Panel position="top-right" className="flex gap-1">
-          <button
-            onClick={handleAutoLayout}
-            className="bg-[var(--c-bg-3)] border border-[var(--c-border-s)] text-[var(--c-text-3)] hover:text-[var(--c-text-1)] text-xs px-2 py-1 rounded"
-          >
-            Auto Layout
-          </button>
-          <button
-            onClick={toggleDirection}
-            className="bg-[var(--c-bg-3)] border border-[var(--c-border-s)] text-[var(--c-text-3)] hover:text-[var(--c-text-1)] text-xs px-2 py-1 rounded"
-          >
-            {layoutDirection === 'LR' ? 'Horizontal' : 'Vertical'}
-          </button>
+          <div ref={menuRef} className="relative">
+            <button
+              onClick={() => setLayoutMenuOpen((o) => !o)}
+              className="bg-[var(--c-bg-3)] border border-[var(--c-border-s)] text-[var(--c-text-3)] hover:text-[var(--c-text-1)] text-xs px-2 py-1 rounded"
+            >
+              Auto Layout
+            </button>
+            {layoutMenuOpen && (
+              <div className="absolute top-full right-0 mt-1 bg-[var(--c-bg-1)] border border-[var(--c-border-s)] rounded shadow-lg z-10 min-w-[120px]">
+                {([['snowflake', 'Snowflake'], ['dense', 'Dense']] as const).map(([mode, label]) => (
+                  <div
+                    key={mode}
+                    onClick={() => handleLayoutSelect(mode)}
+                    className={`px-3 py-1.5 text-xs cursor-pointer ${
+                      layoutMode === mode ? 'text-[var(--c-text-1)] bg-[var(--c-bg-3)]' : 'text-[var(--c-text-3)]'
+                    } hover:bg-[var(--c-bg-3)] hover:text-[var(--c-text-1)]`}
+                  >
+                    {label}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
           <button
             onClick={toggleView}
             className="bg-[var(--c-bg-3)] border border-[var(--c-border-s)] text-[var(--c-text-3)] hover:text-[var(--c-text-1)] text-xs px-2 py-1 rounded"

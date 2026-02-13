@@ -22,8 +22,11 @@ function TableNodeComponent({ data, id }: NodeProps) {
         className="px-3 py-2 font-semibold text-white rounded-t-md flex items-center justify-between"
         style={{ backgroundColor: headerColor }}
       >
-        <span>
-          {schemaPrefix}{table.name}
+        <span className="flex items-center gap-1">
+          {schemaPrefix && (
+            <span className="px-1.5 py-0.5 rounded bg-black/20 text-[10px] font-normal">{table.schema}</span>
+          )}
+          <span>{table.name}</span>
         </span>
         {satelliteCount != null && satelliteCount > 0 && (
           <button

@@ -10,11 +10,13 @@ interface DiagramState {
   layoutDirection: LayoutDirection
   viewMode: ViewMode
   searchOpen: boolean
+  collapsedHubs: Set<string>
   setNodes: (nodes: Node[]) => void
   setEdges: (edges: Edge[]) => void
   setLayoutDirection: (dir: LayoutDirection) => void
   setViewMode: (mode: ViewMode) => void
   setSearchOpen: (open: boolean) => void
+  toggleHubCollapse: (hubId: string) => void
   onNodesChange: (changes: NodeChange[]) => void
   onEdgesChange: (changes: EdgeChange[]) => void
 }
@@ -25,11 +27,18 @@ export const useDiagramStore = create<DiagramState>()((set) => ({
   layoutDirection: 'LR' as LayoutDirection,
   viewMode: 'relational' as ViewMode,
   searchOpen: false,
+  collapsedHubs: new Set<string>(),
   setNodes: (nodes) => set({ nodes }),
   setEdges: (edges) => set({ edges }),
   setLayoutDirection: (layoutDirection) => set({ layoutDirection }),
   setViewMode: (viewMode) => set({ viewMode }),
   setSearchOpen: (searchOpen) => set({ searchOpen }),
+  toggleHubCollapse: (hubId) => set((state) => {
+    const next = new Set(state.collapsedHubs)
+    if (next.has(hubId)) next.delete(hubId)
+    else next.add(hubId)
+    return { collapsedHubs: next }
+  }),
   onNodesChange: (changes) => set((state) => ({ nodes: applyNodeChanges(changes, state.nodes) })),
   onEdgesChange: (changes) => set((state) => ({ edges: applyEdgeChanges(changes, state.edges) })),
 }))

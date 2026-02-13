@@ -35,6 +35,6 @@ async def test_spa_fallback(client):
 @pytest.mark.asyncio
 async def test_static_asset(client):
     """Existing files in dist/assets/ should be served directly."""
-    resp = await client.get("/assets/index-iKjMnF5j.css")
+    resp = await client.get("/assets/index-BHDFeV0V.css")
     assert resp.status_code == 200
     assert "text/css" in resp.headers["content-type"]

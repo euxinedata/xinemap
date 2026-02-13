@@ -9,6 +9,7 @@ const conceptualSizes: Record<string, { width: number; height: number }> = {
   linkNode: { width: 100, height: 70 },
   noteNode: { width: 160, height: 80 },
   conceptNode: { width: 140, height: 50 },
+  stubNode: { width: 160, height: 36 },
 }
 
 function getNodeSize(node: Node): { width: number; height: number } {
@@ -41,6 +42,17 @@ export async function layoutNodes(nodes: Node[], edges: Edge[], direction: 'TB' 
           properties: { 'port.side': isHorizontal ? 'EAST' : 'SOUTH' },
         })
       }
+    }
+
+    if (ports.length === 0) {
+      ports.push({
+        id: `${node.id}-target`,
+        properties: { 'port.side': isHorizontal ? 'WEST' : 'NORTH' },
+      })
+      ports.push({
+        id: `${node.id}-source`,
+        properties: { 'port.side': isHorizontal ? 'EAST' : 'SOUTH' },
+      })
     }
 
     return {

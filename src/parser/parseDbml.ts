@@ -154,23 +154,30 @@ export function parseDbml(source: string): ParseResult {
     }
 
     // Pass 2: resolve relationships using classified types
+    // Note: @dbml/core normalizes ref endpoints so the "1" side is endpoints[0]
+    // and the "*" side is endpoints[1], regardless of which table defined the inline ref.
+    // We must check both directions.
     for (const table of tables) {
       const m = dv2Metadata.get(table.id)!
       if (m.entityType === 'satellite') {
         for (const ref of refs) {
-          if (ref.fromTable === table.id) {
-            const targetMeta = dv2Metadata.get(ref.toTable)
+          const other = ref.fromTable === table.id ? ref.toTable
+                      : ref.toTable === table.id ? ref.fromTable : null
+          if (other) {
+            const targetMeta = dv2Metadata.get(other)
             if (targetMeta && (targetMeta.entityType === 'hub' || targetMeta.entityType === 'link')) {
-              m.parentHubs.push(ref.toTable)
+              m.parentHubs.push(other)
             }
           }
         }
       } else if (m.entityType === 'link') {
         for (const ref of refs) {
-          if (ref.fromTable === table.id) {
-            const targetMeta = dv2Metadata.get(ref.toTable)
+          const other = ref.fromTable === table.id ? ref.toTable
+                      : ref.toTable === table.id ? ref.fromTable : null
+          if (other) {
+            const targetMeta = dv2Metadata.get(other)
             if (targetMeta && targetMeta.entityType === 'hub') {
-              m.linkedHubs.push(ref.toTable)
+              m.linkedHubs.push(other)
             }
           }
         }

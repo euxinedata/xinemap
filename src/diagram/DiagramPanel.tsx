@@ -140,14 +140,14 @@ function DiagramPanelInner() {
           })
           setNodes(merged)
           setEdges(assignEdgeHandles(merged, visibleEdges))
-          fitView({ padding: 0.2 })
+          requestAnimationFrame(() => fitView({ padding: 0.2 }))
           savePositions(merged)
         })
       } else {
         if (!stale) {
           setNodes(laid)
           setEdges(assignEdgeHandles(laid, visibleEdges))
-          fitView({ padding: 0.2 })
+          requestAnimationFrame(() => fitView({ padding: 0.2 }))
         }
       }
     } else {
@@ -156,7 +156,7 @@ function DiagramPanelInner() {
         if (!stale) {
           setNodes(laid)
           setEdges(assignEdgeHandles(laid, visibleEdges))
-          fitView({ padding: 0.2 })
+          requestAnimationFrame(() => fitView({ padding: 0.2 }))
           savePositions(laid)
         }
       })
@@ -215,7 +215,7 @@ function DiagramPanelInner() {
     layoutNodes(visibleNodes, visibleEdges, mode).then((laid) => {
       setNodes(laid)
       setEdges(assignEdgeHandles(laid, visibleEdges))
-      fitView({ padding: 0.2 })
+      requestAnimationFrame(() => fitView({ padding: 0.2 }))
       // Save new positions
       const positions: Record<string, { x: number; y: number }> = {}
       for (const n of laid) {

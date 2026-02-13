@@ -3,6 +3,7 @@ import type { SavedProject, CommitInfo } from '../types'
 import * as storage from '../persistence/gitStorage'
 import { useEditorStore } from './useEditorStore'
 import { useSourceConfigStore } from './useSourceConfigStore'
+import { useDiagramStore } from './useDiagramStore'
 
 interface ProjectState {
   currentProjectId: string | null
@@ -41,6 +42,11 @@ export const useProjectStore = create<ProjectState>()((set) => ({
       await storage.saveSourceConfig(id, sourceConfig)
     }
 
+    const storedLayout = useDiagramStore.getState().storedLayout
+    if (storedLayout) {
+      await storage.saveLayout(id, storedLayout)
+    }
+
     const projects = await storage.listProjects()
     const history = await storage.getHistory(id)
     set({ currentProjectId: id, projects, commitHistory: history })
@@ -56,6 +62,13 @@ export const useProjectStore = create<ProjectState>()((set) => ({
       useSourceConfigStore.getState().setSourceConfig(sourceConfig)
     } else {
       useSourceConfigStore.getState().setSourceConfig({})
+    }
+
+    const layout = await storage.getLayout(id)
+    const diagramStore = useDiagramStore.getState()
+    diagramStore.setStoredLayout(layout)
+    if (layout?.layoutMode === 'snowflake' || layout?.layoutMode === 'dense') {
+      diagramStore.setLayoutMode(layout.layoutMode)
     }
 
     const history = await storage.getHistory(id)
@@ -75,6 +88,7 @@ export const useProjectStore = create<ProjectState>()((set) => ({
   newProject: () => {
     useEditorStore.getState().setDbml('')
     useSourceConfigStore.getState().setSourceConfig({})
+    useDiagramStore.getState().setStoredLayout(null)
     set({ currentProjectId: null, commitHistory: [] })
   },
 

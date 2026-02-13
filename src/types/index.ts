@@ -129,6 +129,14 @@ export interface CommitInfo {
   timestamp: number
 }
 
+// --- Layout Persistence ---
+
+export interface StoredLayout {
+  relational?: Record<string, { x: number; y: number }>
+  conceptual?: Record<string, { x: number; y: number }>
+  layoutMode: string
+}
+
 // --- Source Configuration (DataVault4dbt) ---
 
 export interface SourceMapping {

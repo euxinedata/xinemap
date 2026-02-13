@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { type Node, type Edge, type NodeChange, type EdgeChange, applyNodeChanges, applyEdgeChanges } from '@xyflow/react'
+import type { StoredLayout } from '../types'
 
 export type LayoutMode = 'snowflake' | 'dense'
 export type ViewMode = 'relational' | 'conceptual'
@@ -11,12 +12,14 @@ interface DiagramState {
   viewMode: ViewMode
   searchOpen: boolean
   collapsedHubs: Set<string>
+  storedLayout: StoredLayout | null
   setNodes: (nodes: Node[]) => void
   setEdges: (edges: Edge[]) => void
   setLayoutMode: (mode: LayoutMode) => void
   setViewMode: (mode: ViewMode) => void
   setSearchOpen: (open: boolean) => void
   toggleHubCollapse: (hubId: string) => void
+  setStoredLayout: (layout: StoredLayout | null) => void
   onNodesChange: (changes: NodeChange[]) => void
   onEdgesChange: (changes: EdgeChange[]) => void
 }
@@ -28,6 +31,7 @@ export const useDiagramStore = create<DiagramState>()((set) => ({
   viewMode: 'relational' as ViewMode,
   searchOpen: false,
   collapsedHubs: new Set<string>(),
+  storedLayout: null,
   setNodes: (nodes) => set({ nodes }),
   setEdges: (edges) => set({ edges }),
   setLayoutMode: (layoutMode) => set({ layoutMode }),
@@ -39,6 +43,7 @@ export const useDiagramStore = create<DiagramState>()((set) => ({
     else next.add(hubId)
     return { collapsedHubs: next }
   }),
+  setStoredLayout: (storedLayout) => set({ storedLayout }),
   onNodesChange: (changes) => set((state) => ({ nodes: applyNodeChanges(changes, state.nodes) })),
   onEdgesChange: (changes) => set((state) => ({ edges: applyEdgeChanges(changes, state.edges) })),
 }))

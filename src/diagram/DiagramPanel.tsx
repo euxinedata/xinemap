@@ -3,10 +3,12 @@ import { ReactFlow, ReactFlowProvider, Controls, Background, BackgroundVariant, 
 import '@xyflow/react/dist/style.css'
 import { useDiagramStore, type LayoutMode, type ViewMode } from '../store/useDiagramStore'
 import { useEditorStore } from '../store/useEditorStore'
+import { useProjectStore } from '../store/useProjectStore'
 import { parseResultToFlow } from '../parser/dbmlToFlow'
 import { parseResultToConceptualFlow } from '../parser/conceptualToFlow'
 import { layoutNodes } from './layoutEngine'
-import type { DV2Metadata } from '../types'
+import * as storage from '../persistence/gitStorage'
+import type { DV2Metadata, StoredLayout } from '../types'
 import { TableNode } from './TableNode'
 import { EnumNode } from './EnumNode'
 import { EREdge } from './EREdge'
@@ -73,13 +75,37 @@ function filterCollapsedSatellites(
 }
 
 function DiagramPanelInner() {
-  const { nodes, edges, setNodes, setEdges, onNodesChange, onEdgesChange, layoutMode, setLayoutMode, viewMode, setViewMode } = useDiagramStore()
+  const { nodes, edges, setNodes, setEdges, onNodesChange, onEdgesChange, layoutMode, setLayoutMode, viewMode, setViewMode, storedLayout, setStoredLayout } = useDiagramStore()
   const collapsedHubs = useDiagramStore((s) => s.collapsedHubs)
   const parseResult = useEditorStore((s) => s.parseResult)
   const [focusedTableId, setFocusedTableId] = useState<string | null>(null)
   const [layoutMenuOpen, setLayoutMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const { fitView } = useReactFlow()
+
+  // Helper: save positions to storedLayout and persist to git
+  const savePositions = useCallback((currentNodes: Node[]) => {
+    const positions: Record<string, { x: number; y: number }> = {}
+    for (const n of currentNodes) {
+      positions[n.id] = { x: n.position.x, y: n.position.y }
+    }
+    const prev = useDiagramStore.getState().storedLayout
+    const updated: StoredLayout = {
+      ...prev,
+      [viewMode]: positions,
+      layoutMode,
+    }
+    setStoredLayout(updated)
+
+    const projectId = useProjectStore.getState().currentProjectId
+    if (projectId) {
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
+      saveTimerRef.current = setTimeout(() => {
+        storage.saveLayout(projectId, updated)
+      }, 500)
+    }
+  }, [viewMode, layoutMode, setStoredLayout])
 
   useEffect(() => {
     if (!parseResult) {
@@ -96,15 +122,49 @@ function DiagramPanelInner() {
         ? filterCollapsedSatellites(flowNodes, flowEdges, collapsedHubs, parseResult.dv2Metadata)
         : { nodes: flowNodes, edges: flowEdges }
 
-    layoutNodes(visibleNodes, visibleEdges, layoutMode).then((laid) => {
-      if (!stale) {
-        setNodes(laid)
-        setEdges(visibleEdges)
-        fitView({ padding: 0.2 })
+    // Check if we have stored positions for this view mode
+    const stored = storedLayout?.[viewMode]
+    if (stored && Object.keys(stored).length > 0) {
+      // Apply stored positions
+      const laid = visibleNodes.map((n) => {
+        const pos = stored[n.id]
+        return pos ? { ...n, position: { x: pos.x, y: pos.y } } : n
+      })
+      // Check if any nodes are missing positions (new tables added)
+      const hasNewNodes = visibleNodes.some((n) => !stored[n.id])
+      if (hasNewNodes) {
+        // Run layout for all nodes, but only use positions for new ones
+        layoutNodes(visibleNodes, visibleEdges, layoutMode).then((autoLaid) => {
+          if (stale) return
+          const merged = autoLaid.map((n) => {
+            const pos = stored[n.id]
+            return pos ? { ...n, position: { x: pos.x, y: pos.y } } : n
+          })
+          setNodes(merged)
+          setEdges(visibleEdges)
+          fitView({ padding: 0.2 })
+          savePositions(merged)
+        })
+      } else {
+        if (!stale) {
+          setNodes(laid)
+          setEdges(visibleEdges)
+          fitView({ padding: 0.2 })
+        }
       }
-    })
+    } else {
+      // No stored positions — run auto-layout
+      layoutNodes(visibleNodes, visibleEdges, layoutMode).then((laid) => {
+        if (!stale) {
+          setNodes(laid)
+          setEdges(visibleEdges)
+          fitView({ padding: 0.2 })
+          savePositions(laid)
+        }
+      })
+    }
     return () => { stale = true }
-  }, [parseResult, layoutMode, viewMode, collapsedHubs, setNodes, setEdges, fitView])
+  }, [parseResult, viewMode, collapsedHubs, setNodes, setEdges, fitView]) // Note: layoutMode intentionally excluded — auto-layout only on explicit click
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -118,15 +178,67 @@ function DiagramPanelInner() {
     return () => document.removeEventListener('mousedown', handler)
   }, [layoutMenuOpen])
 
+  // Auto Layout with confirmation
   const handleLayoutSelect = useCallback((mode: LayoutMode) => {
-    setLayoutMode(mode)
     setLayoutMenuOpen(false)
-  }, [setLayoutMode])
+    const hasStoredPositions = storedLayout?.[viewMode] && Object.keys(storedLayout[viewMode]!).length > 0
+    if (hasStoredPositions && !window.confirm('Recalculate layout? Manual positions will be lost.')) {
+      return
+    }
+    // Clear stored positions for current view mode, then run layout
+    const updated: StoredLayout = {
+      ...storedLayout,
+      [viewMode]: undefined,
+      layoutMode: mode,
+    }
+    setStoredLayout(updated)
+    setLayoutMode(mode)
+
+    // Run layout immediately
+    if (!parseResult) return
+    const convert = viewMode === 'conceptual' ? parseResultToConceptualFlow : parseResultToFlow
+    const { nodes: flowNodes, edges: flowEdges } = convert(parseResult)
+    const { nodes: visibleNodes, edges: visibleEdges } =
+      viewMode === 'relational'
+        ? filterCollapsedSatellites(flowNodes, flowEdges, collapsedHubs, parseResult.dv2Metadata)
+        : { nodes: flowNodes, edges: flowEdges }
+
+    layoutNodes(visibleNodes, visibleEdges, mode).then((laid) => {
+      setNodes(laid)
+      setEdges(visibleEdges)
+      fitView({ padding: 0.2 })
+      // Save new positions
+      const positions: Record<string, { x: number; y: number }> = {}
+      for (const n of laid) {
+        positions[n.id] = { x: n.position.x, y: n.position.y }
+      }
+      const finalLayout: StoredLayout = {
+        ...updated,
+        [viewMode]: positions,
+        layoutMode: mode,
+      }
+      setStoredLayout(finalLayout)
+      const projectId = useProjectStore.getState().currentProjectId
+      if (projectId) storage.saveLayout(projectId, finalLayout)
+    })
+  }, [storedLayout, viewMode, parseResult, collapsedHubs, setStoredLayout, setLayoutMode, setNodes, setEdges, fitView])
 
   const toggleView = useCallback(() => {
     const next: ViewMode = viewMode === 'relational' ? 'conceptual' : 'relational'
     setViewMode(next)
   }, [viewMode, setViewMode])
+
+  // Save positions on node drag stop
+  const handleNodeDragStop = useCallback((_: React.MouseEvent, _node: Node, draggedNodes: Node[]) => {
+    // Update positions for all dragged nodes in the current store nodes
+    const currentNodes = useDiagramStore.getState().nodes
+    const draggedMap = new Map(draggedNodes.map((n) => [n.id, n.position]))
+    const updatedNodes = currentNodes.map((n) => {
+      const pos = draggedMap.get(n.id)
+      return pos ? { ...n, position: pos } : n
+    })
+    savePositions(updatedNodes)
+  }, [savePositions])
 
   const handleNodeDoubleClick = useCallback((_: React.MouseEvent, node: Node) => {
     setFocusedTableId(node.id)
@@ -141,6 +253,7 @@ function DiagramPanelInner() {
         edgeTypes={edgeTypes}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
+        onNodeDragStop={handleNodeDragStop}
         onNodeDoubleClick={handleNodeDoubleClick}
       >
         <Controls />

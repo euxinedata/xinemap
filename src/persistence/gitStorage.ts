@@ -3,7 +3,7 @@ import { Buffer } from 'buffer'
 
 import git from 'isomorphic-git'
 import LightningFS from '@isomorphic-git/lightning-fs'
-import type { SavedProject, CommitInfo, SourceConfig } from '../types'
+import type { SavedProject, CommitInfo, SourceConfig, StoredLayout } from '../types'
 
 const lfs = new LightningFS('dglml')
 const fs = lfs
@@ -199,6 +199,39 @@ export async function saveSourceConfig(id: string, config: SourceConfig): Promis
     fs,
     dir,
     message: `Update sources ${ts}`,
+    author: { ...AUTHOR, timestamp: Math.floor(now.getTime() / 1000) },
+  })
+}
+
+// --- Layout Persistence ---
+
+export async function getLayout(id: string): Promise<StoredLayout | null> {
+  const dir = projectDir(id)
+  try {
+    const raw = await pfs.readFile(`${dir}/layout.json`, 'utf8') as string
+    return JSON.parse(raw) as StoredLayout
+  } catch {
+    return null
+  }
+}
+
+export async function saveLayout(id: string, layout: StoredLayout): Promise<void> {
+  const dir = projectDir(id)
+  try {
+    await pfs.stat(`${dir}/.git`)
+  } catch {
+    return
+  }
+
+  await pfs.writeFile(`${dir}/layout.json`, JSON.stringify(layout), 'utf8')
+  await git.add({ fs, dir, filepath: 'layout.json' })
+
+  const now = new Date()
+  const ts = now.toLocaleString('sv-SE', { hour12: false }).replace(',', '')
+  await git.commit({
+    fs,
+    dir,
+    message: `Update layout ${ts}`,
     author: { ...AUTHOR, timestamp: Math.floor(now.getTime() / 1000) },
   })
 }

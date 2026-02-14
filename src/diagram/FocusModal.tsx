@@ -40,7 +40,7 @@ function FocusModalInner({ tableId, onClose }: FocusModalProps) {
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set())
   const [modalNodes, setModalNodes] = useState<Node[]>([])
   const [modalEdges, setModalEdges] = useState<Edge[]>([])
-  const [editOpen, setEditOpen] = useState(false)
+  const [editOpen, setEditOpen] = useState(true)
   const [guides, setGuides] = useState<GuideLine[]>([])
   const nodesRef = useRef<Node[]>([])
   nodesRef.current = modalNodes

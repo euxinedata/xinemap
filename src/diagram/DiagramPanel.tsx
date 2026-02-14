@@ -100,9 +100,11 @@ function DiagramPanelInner() {
   const [focusedTableId, setFocusedTableId] = useState<string | null>(null)
   const [layoutMenuOpen, setLayoutMenuOpen] = useState(false)
   const [browseOpen, setBrowseOpen] = useState(false)
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; nodeId: string } | null>(null)
   const [guides, setGuides] = useState<GuideLine[]>([])
   const menuRef = useRef<HTMLDivElement>(null)
   const browseRef = useRef<HTMLDivElement>(null)
+  const ctxMenuRef = useRef<HTMLDivElement>(null)
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const { fitView } = useReactFlow()
 
@@ -365,6 +367,73 @@ function DiagramPanelInner() {
     setFocusedTableId(node.id)
   }, [])
 
+  const handleNodeContextMenu = useCallback((e: React.MouseEvent, node: Node) => {
+    e.preventDefault()
+    setContextMenu({ x: e.clientX, y: e.clientY, nodeId: node.id })
+  }, [])
+
+  const handleDeleteNode = useCallback(() => {
+    if (!contextMenu) return
+    const node = nodes.find((n) => n.id === contextMenu.nodeId)
+    if (!node) return
+    const tableName = (node.data as any)?.table?.name ?? (node.data as any)?.label ?? ''
+    setContextMenu(null)
+    if (!window.confirm(`Delete table "${tableName}" and all its references?`)) return
+    const line = (node.data as any)?.table?.line ?? (node.data as any)?.line
+    if (!line) return
+
+    const dbml = useEditorStore.getState().dbml
+    const lines = dbml.split('\n')
+    const startIdx = line - 1 // 1-indexed to 0-indexed
+
+    // Find closing brace tracking depth
+    let depth = 0
+    let endIdx = startIdx
+    for (let i = startIdx; i < lines.length; i++) {
+      for (const ch of lines[i]) {
+        if (ch === '{') depth++
+        if (ch === '}') depth--
+      }
+      if (depth <= 0) { endIdx = i; break }
+    }
+
+    // Remove trailing blank line if present
+    if (endIdx + 1 < lines.length && lines[endIdx + 1].trim() === '') endIdx++
+
+    // Ref cleanup using qualified name
+    const schemaName = (node.data as any)?.table?.schema
+    const qualifiedName = schemaName && schemaName !== 'public' ? `${schemaName}.${tableName}` : tableName
+
+    // Remove table block
+    lines.splice(startIdx, endIdx - startIdx + 1)
+
+    // Remove Ref lines and TableGroup entries that reference this table
+    const cleaned = lines.filter((l) => {
+      const trimmed = l.trim()
+      if (trimmed.startsWith('Ref') && trimmed.includes(qualifiedName)) return false
+      if (trimmed === qualifiedName || trimmed === tableName) return false
+      return true
+    })
+
+    useEditorStore.getState().setDbml(cleaned.join('\n'))
+  }, [contextMenu, nodes])
+
+  // Close context menu on click outside or escape
+  useEffect(() => {
+    if (!contextMenu) return
+    const handleClose = (e: MouseEvent) => {
+      if (ctxMenuRef.current && ctxMenuRef.current.contains(e.target as HTMLElement)) return
+      setContextMenu(null)
+    }
+    const handleKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setContextMenu(null) }
+    document.addEventListener('mousedown', handleClose, true)
+    document.addEventListener('keydown', handleKey)
+    return () => {
+      document.removeEventListener('mousedown', handleClose, true)
+      document.removeEventListener('keydown', handleKey)
+    }
+  }, [contextMenu])
+
   return (
     <div className="h-full bg-[var(--c-bg-2)]">
       <ReactFlow
@@ -378,6 +447,7 @@ function DiagramPanelInner() {
         onNodeClick={handleNodeClick}
         onEdgeClick={handleEdgeClick}
         onNodeDoubleClick={handleNodeDoubleClick}
+        onNodeContextMenu={handleNodeContextMenu}
       >
         <Controls />
         <Background variant={BackgroundVariant.Dots} color="var(--c-dots)" />
@@ -470,6 +540,20 @@ function DiagramPanelInner() {
         )}
         <CommandPalette onFocusTable={setFocusedTableId} />
       </ReactFlow>
+      {contextMenu && (
+        <div
+          ref={ctxMenuRef}
+          className="fixed z-50 bg-[var(--c-bg-1)] border border-[var(--c-border-s)] rounded shadow-lg py-1 min-w-[120px]"
+          style={{ left: contextMenu.x, top: contextMenu.y }}
+        >
+          <div
+            onClick={handleDeleteNode}
+            className="px-3 py-1.5 text-xs cursor-pointer text-red-400 hover:bg-[var(--c-bg-3)] hover:text-red-300"
+          >
+            Delete
+          </div>
+        </div>
+      )}
       {focusedTableId && (
         <FocusModal tableId={focusedTableId} onClose={() => setFocusedTableId(null)} />
       )}

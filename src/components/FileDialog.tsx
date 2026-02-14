@@ -10,29 +10,20 @@ export function FileDialog({ isOpen, onClose }: FileDialogProps) {
   const {
     currentProjectId,
     projects,
-    commitHistory,
     loadProjectList,
     saveCurrentProject,
     openProject,
     deleteProject,
-    loadHistory,
-    restoreCommit,
   } = useProjectStore()
 
   const [saveName, setSaveName] = useState('')
-  const [showHistory, setShowHistory] = useState(false)
 
   useEffect(() => {
     if (isOpen) {
       loadProjectList()
       setSaveName('')
-      setShowHistory(false)
     }
   }, [isOpen, loadProjectList])
-
-  useEffect(() => {
-    if (showHistory && currentProjectId) loadHistory()
-  }, [showHistory, currentProjectId, loadHistory])
 
   if (!isOpen) return null
 
@@ -61,11 +52,6 @@ export function FileDialog({ isOpen, onClose }: FileDialogProps) {
     await deleteProject(id)
   }
 
-  const handleRestore = async (oid: string) => {
-    await restoreCommit(oid)
-    onClose()
-  }
-
   const formatDate = (ts: number) => {
     return new Date(ts).toLocaleString(undefined, {
       year: 'numeric',
@@ -74,17 +60,6 @@ export function FileDialog({ isOpen, onClose }: FileDialogProps) {
       hour: '2-digit',
       minute: '2-digit',
     })
-  }
-
-  const relativeTime = (ts: number) => {
-    const diff = Date.now() - ts
-    const mins = Math.floor(diff / 60000)
-    if (mins < 1) return 'just now'
-    if (mins < 60) return `${mins}m ago`
-    const hours = Math.floor(mins / 60)
-    if (hours < 24) return `${hours}h ago`
-    const days = Math.floor(hours / 24)
-    return `${days}d ago`
   }
 
   return (
@@ -98,21 +73,7 @@ export function FileDialog({ isOpen, onClose }: FileDialogProps) {
       >
         {/* Header */}
         <div className="flex items-center justify-between border-b border-[var(--c-border)] px-4 py-3">
-          <div className="flex items-center gap-3">
-            <h2 className="text-sm font-semibold text-[var(--c-text-1)]">Projects</h2>
-            {currentProject && (
-              <button
-                onClick={() => setShowHistory(!showHistory)}
-                className={`text-xs px-2 py-0.5 rounded ${
-                  showHistory
-                    ? 'bg-blue-600 text-white'
-                    : 'text-[var(--c-text-3)] hover:text-[var(--c-text-1)] bg-[var(--c-bg-hover)]'
-                }`}
-              >
-                History
-              </button>
-            )}
-          </div>
+          <h2 className="text-sm font-semibold text-[var(--c-text-1)]">Projects</h2>
           <button
             onClick={onClose}
             className="text-[var(--c-text-3)] hover:text-[var(--c-text-1)] text-sm"
@@ -121,39 +82,7 @@ export function FileDialog({ isOpen, onClose }: FileDialogProps) {
           </button>
         </div>
 
-        {showHistory ? (
-          /* Version history */
-          <div className="max-h-72 overflow-y-auto px-4 py-2">
-            {commitHistory.length === 0 ? (
-              <p className="py-4 text-center text-sm text-[var(--c-text-4)]">No history</p>
-            ) : (
-              <div className="flex flex-col gap-1">
-                {commitHistory.map((c, i) => (
-                  <div
-                    key={c.oid}
-                    className="flex items-center justify-between py-1.5 border-b border-[var(--c-border)]/50 last:border-0"
-                  >
-                    <div className="flex flex-col min-w-0">
-                      <span className="text-sm text-[var(--c-text-2)] truncate">{c.message}</span>
-                      <span className="text-[11px] text-[var(--c-text-4)]">
-                        {relativeTime(c.timestamp)} — {c.oid.slice(0, 7)}
-                      </span>
-                    </div>
-                    {i > 0 && (
-                      <button
-                        onClick={() => handleRestore(c.oid)}
-                        className="text-xs text-blue-400 hover:text-blue-300 ml-2 shrink-0"
-                      >
-                        Restore
-                      </button>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        ) : (
-          /* Project list */
+        {/* Project list */}
           <div className="max-h-64 overflow-y-auto px-4 py-2">
             {projects.length === 0 ? (
               <p className="py-4 text-center text-sm text-[var(--c-text-4)]">
@@ -198,7 +127,6 @@ export function FileDialog({ isOpen, onClose }: FileDialogProps) {
               </table>
             )}
           </div>
-        )}
 
         {/* Save section */}
         <div className="border-t border-[var(--c-border)] px-4 py-3">

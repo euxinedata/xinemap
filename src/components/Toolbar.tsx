@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { ExportDialog } from './ExportDialog'
 import { FileDialog } from './FileDialog'
+import { HistoryDialog } from './HistoryDialog'
 import { SourceConfigDialog } from './SourceConfigDialog'
 import { useProjectStore } from '../store/useProjectStore'
 import { useEditorStore } from '../store/useEditorStore'
@@ -12,6 +13,7 @@ const btnClass = 'text-sm text-[var(--c-text-3)] hover:text-[var(--c-text-1)] px
 export function Toolbar() {
   const [exportOpen, setExportOpen] = useState(false)
   const [fileOpen, setFileOpen] = useState(false)
+  const [historyOpen, setHistoryOpen] = useState(false)
   const [sourcesOpen, setSourcesOpen] = useState(false)
   const newProject = useProjectStore((s) => s.newProject)
   const currentProjectId = useProjectStore((s) => s.currentProjectId)
@@ -87,6 +89,9 @@ export function Toolbar() {
           <button onClick={() => setSourcesOpen(true)} className={btnClass}>Sources</button>
         )}
         <button onClick={() => setExportOpen(true)} className={btnClass}>Export</button>
+        {currentProjectId && (
+          <button onClick={() => setHistoryOpen(true)} className={btnClass}>History</button>
+        )}
         <input ref={fileRef} type="file" accept=".dbml,.sql" className="hidden" onChange={handleFileChange} />
       </div>
       <button onClick={toggleTheme} className={btnClass}>{isDark ? 'Light' : 'Dark'}</button>
@@ -97,6 +102,7 @@ export function Toolbar() {
             : undefined)}
       </span>
       <FileDialog isOpen={fileOpen} onClose={() => setFileOpen(false)} />
+      <HistoryDialog isOpen={historyOpen} onClose={() => setHistoryOpen(false)} />
       <SourceConfigDialog isOpen={sourcesOpen} onClose={() => setSourcesOpen(false)} />
       <ExportDialog isOpen={exportOpen} onClose={() => setExportOpen(false)} />
     </div>

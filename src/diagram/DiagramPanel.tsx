@@ -21,6 +21,7 @@ import { NoteNode } from './conceptual/NoteNode'
 import { ConceptNode } from './conceptual/ConceptNode'
 import { CommandPalette } from '../components/CommandPalette'
 import { FocusModal } from './FocusModal'
+import { ConfirmDialog } from '../components/InlineDialog'
 import { computeSnap, type GuideLine } from './snapAlign'
 
 const nodeTypes = {
@@ -102,6 +103,8 @@ function DiagramPanelInner() {
   const [browseOpen, setBrowseOpen] = useState(false)
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; nodeId: string } | null>(null)
   const [guides, setGuides] = useState<GuideLine[]>([])
+  const [pendingLayout, setPendingLayout] = useState<LayoutMode | null>(null)
+  const [pendingDelete, setPendingDelete] = useState<{ nodeId: string; tableName: string } | null>(null)
   const menuRef = useRef<HTMLDivElement>(null)
   const browseRef = useRef<HTMLDivElement>(null)
   const ctxMenuRef = useRef<HTMLDivElement>(null)
@@ -269,9 +272,14 @@ function DiagramPanelInner() {
   const handleLayoutSelect = useCallback((mode: LayoutMode) => {
     setLayoutMenuOpen(false)
     const hasStoredPositions = storedLayout?.[viewMode] && Object.keys(storedLayout[viewMode]!).length > 0
-    if (hasStoredPositions && !window.confirm('Recalculate layout? Manual positions will be lost.')) {
+    if (hasStoredPositions) {
+      setPendingLayout(mode)
       return
     }
+    applyLayout(mode)
+  }, [storedLayout, viewMode])
+
+  const applyLayout = useCallback((mode: LayoutMode) => {
     // Clear stored positions for current view, keep other view's positions
     const updated: StoredLayout = { ...storedLayout, [viewMode]: undefined, layoutMode: mode }
     setStoredLayout(updated)
@@ -301,6 +309,11 @@ function DiagramPanelInner() {
       if (projectId) storage.saveLayout(projectId, finalLayout)
     })
   }, [storedLayout, viewMode, parseResult, collapsedHubs, setStoredLayout, setLayoutMode, setNodes, setEdges, fitView])
+
+  const handleLayoutConfirm = useCallback(() => {
+    if (pendingLayout) applyLayout(pendingLayout)
+    setPendingLayout(null)
+  }, [pendingLayout, applyLayout])
 
   const toggleView = useCallback(() => {
     const next: ViewMode = viewMode === 'relational' ? 'conceptual' : 'relational'
@@ -437,7 +450,15 @@ function DiagramPanelInner() {
     if (!node) return
     const tableName = (node.data as any)?.table?.name ?? (node.data as any)?.label ?? ''
     setContextMenu(null)
-    if (!window.confirm(`Delete table "${tableName}" and all its references?`)) return
+    setPendingDelete({ nodeId: contextMenu.nodeId, tableName })
+  }, [contextMenu, nodes])
+
+  const executeDelete = useCallback(() => {
+    if (!pendingDelete) return
+    const node = nodes.find((n) => n.id === pendingDelete.nodeId)
+    if (!node) { setPendingDelete(null); return }
+    const tableName = pendingDelete.tableName
+    setPendingDelete(null)
     const line = (node.data as any)?.table?.line ?? (node.data as any)?.line
     if (!line) return
 
@@ -475,7 +496,7 @@ function DiagramPanelInner() {
     })
 
     useEditorStore.getState().setDbml(cleaned.join('\n'))
-  }, [contextMenu, nodes])
+  }, [pendingDelete, nodes])
 
   // Close context menu on click outside or escape
   useEffect(() => {
@@ -525,13 +546,14 @@ function DiagramPanelInner() {
           <div ref={menuRef} className="relative">
             <button
               onClick={() => setLayoutMenuOpen((o) => !o)}
-              className="bg-[var(--c-bg-3)] border border-[var(--c-border-s)] text-[var(--c-text-3)] hover:text-[var(--c-text-1)] text-xs px-2 py-1 rounded"
+              className="flex items-center gap-1.5 bg-[var(--c-bg-3)] border border-[var(--c-border-s)] text-[var(--c-text-3)] hover:text-[var(--c-text-1)] text-xs px-2 py-1 rounded"
             >
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="1" width="4" height="4" rx="0.5" /><rect x="9" y="1" width="4" height="4" rx="0.5" /><rect x="5" y="9" width="4" height="4" rx="0.5" /><line x1="3" y1="5" x2="3" y2="7" /><line x1="11" y1="5" x2="11" y2="7" /><line x1="3" y1="7" x2="11" y2="7" /><line x1="7" y1="7" x2="7" y2="9" /></svg>
               Auto Layout
             </button>
             {layoutMenuOpen && (
               <div className="absolute top-full right-0 mt-1 bg-[var(--c-bg-1)] border border-[var(--c-border-s)] rounded shadow-lg z-10 min-w-[120px]">
-                {([['snowflake', 'Snowflake'], ['dense', 'Dense']] as const).map(([mode, label]) => (
+                {([['spread', 'Spread'], ['dense', 'Dense']] as const).map(([mode, label]) => (
                   <div
                     key={mode}
                     onClick={() => handleLayoutSelect(mode)}
@@ -547,15 +569,20 @@ function DiagramPanelInner() {
           </div>
           <button
             onClick={toggleView}
-            className="bg-[var(--c-bg-3)] border border-[var(--c-border-s)] text-[var(--c-text-3)] hover:text-[var(--c-text-1)] text-xs px-2 py-1 rounded"
+            className="flex items-center gap-1.5 bg-[var(--c-bg-3)] border border-[var(--c-border-s)] text-[var(--c-text-3)] hover:text-[var(--c-text-1)] text-xs px-2 py-1 rounded"
           >
+            {viewMode === 'relational'
+              ? <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="1" width="5" height="3" rx="0.5" /><rect x="8" y="1" width="5" height="3" rx="0.5" /><rect x="1" y="6" width="5" height="3" rx="0.5" /><rect x="8" y="10" width="5" height="3" rx="0.5" /><line x1="6" y1="2.5" x2="8" y2="2.5" /><line x1="3.5" y1="4" x2="3.5" y2="6" /><line x1="6" y1="7.5" x2="8" y2="12" /></svg>
+              : <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"><circle cx="7" cy="4" r="2.5" /><rect x="1" y="9" width="4" height="2.5" rx="0.5" /><rect x="9" y="9" width="4" height="2.5" rx="0.5" /><line x1="5.5" y1="6" x2="3" y2="9" /><line x1="8.5" y1="6" x2="11" y2="9" /></svg>
+            }
             {viewMode === 'relational' ? 'Relational' : 'Conceptual'}
           </button>
           <div ref={browseRef} className="relative">
             <button
               onClick={() => setBrowseOpen((o) => !o)}
-              className="bg-[var(--c-bg-3)] border border-[var(--c-border-s)] text-[var(--c-text-3)] hover:text-[var(--c-text-1)] text-xs px-2 py-1 rounded"
+              className="flex items-center gap-1.5 bg-[var(--c-bg-3)] border border-[var(--c-border-s)] text-[var(--c-text-3)] hover:text-[var(--c-text-1)] text-xs px-2 py-1 rounded"
             >
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"><line x1="2" y1="3" x2="12" y2="3" /><line x1="2" y1="7" x2="12" y2="7" /><line x1="2" y1="11" x2="12" y2="11" /><circle cx="2" cy="3" r="0.5" fill="currentColor" /><circle cx="2" cy="7" r="0.5" fill="currentColor" /><circle cx="2" cy="11" r="0.5" fill="currentColor" /></svg>
               Browse
             </button>
             {browseOpen && browseGroups.length > 0 && (
@@ -645,6 +672,23 @@ function DiagramPanelInner() {
       )}
       {focusedTableId && (
         <FocusModal tableId={focusedTableId} onClose={() => setFocusedTableId(null)} />
+      )}
+      {pendingLayout && (
+        <ConfirmDialog
+          message="Recalculate layout? Manual positions will be lost."
+          confirmLabel="Recalculate"
+          onConfirm={handleLayoutConfirm}
+          onCancel={() => setPendingLayout(null)}
+        />
+      )}
+      {pendingDelete && (
+        <ConfirmDialog
+          message={`Delete table "${pendingDelete.tableName}" and all its references?`}
+          confirmLabel="Delete"
+          danger
+          onConfirm={executeDelete}
+          onCancel={() => setPendingDelete(null)}
+        />
       )}
     </div>
   )

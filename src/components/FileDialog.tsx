@@ -1,5 +1,6 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useProjectStore } from '../store/useProjectStore'
+import { ConfirmDialog } from './InlineDialog'
 
 interface FileDialogProps {
   isOpen: boolean
@@ -14,6 +15,8 @@ export function FileDialog({ isOpen, onClose }: FileDialogProps) {
     deleteProject,
   } = useProjectStore()
 
+  const [deleteId, setDeleteId] = useState<string | null>(null)
+
   useEffect(() => {
     if (isOpen) {
       loadProjectList()
@@ -27,9 +30,10 @@ export function FileDialog({ isOpen, onClose }: FileDialogProps) {
     onClose()
   }
 
-  const handleDelete = async (id: string) => {
-    if (!window.confirm('Delete this project?')) return
-    await deleteProject(id)
+  const handleDeleteConfirm = async () => {
+    if (!deleteId) return
+    await deleteProject(deleteId)
+    setDeleteId(null)
   }
 
   const formatDate = (ts: number) => {
@@ -41,6 +45,8 @@ export function FileDialog({ isOpen, onClose }: FileDialogProps) {
       minute: '2-digit',
     })
   }
+
+  const deleteProject_ = projects.find((p) => p.id === deleteId)
 
   return (
     <div
@@ -95,7 +101,7 @@ export function FileDialog({ isOpen, onClose }: FileDialogProps) {
                           Open
                         </button>
                         <button
-                          onClick={() => handleDelete(p.id)}
+                          onClick={() => setDeleteId(p.id)}
                           className="text-red-400 hover:text-red-300"
                         >
                           Delete
@@ -108,6 +114,15 @@ export function FileDialog({ isOpen, onClose }: FileDialogProps) {
             )}
           </div>
       </div>
+      {deleteId && (
+        <ConfirmDialog
+          message={`Delete project "${deleteProject_?.name}"?`}
+          confirmLabel="Delete"
+          danger
+          onConfirm={handleDeleteConfirm}
+          onCancel={() => setDeleteId(null)}
+        />
+      )}
     </div>
   )
 }

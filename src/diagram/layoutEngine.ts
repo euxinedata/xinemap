@@ -90,7 +90,7 @@ export function layoutFocusGraph(nodes: Node[], focusedId: string): Node[] {
   return removeOverlaps(laid, 60)
 }
 
-export async function layoutNodes(nodes: Node[], edges: Edge[], mode: LayoutMode = 'snowflake'): Promise<Node[]> {
+export async function layoutNodes(nodes: Node[], edges: Edge[], mode: LayoutMode = 'spread'): Promise<Node[]> {
   const children = nodes.map((node) => {
     const { width, height } = getNodeSize(node)
     return { id: node.id, width, height }
@@ -102,7 +102,7 @@ export async function layoutNodes(nodes: Node[], edges: Edge[], mode: LayoutMode
     targets: [e.target],
   }))
 
-  const layoutOptions: Record<string, string> = mode === 'snowflake'
+  const layoutOptions: Record<string, string> = mode === 'spread'
     ? {
         'elk.algorithm': 'stress',
         'elk.stress.desiredEdgeLength': '250',
@@ -135,5 +135,5 @@ export async function layoutNodes(nodes: Node[], edges: Edge[], mode: LayoutMode
     position: posMap.get(node.id) ?? { x: 0, y: 0 },
   }))
 
-  return mode === 'snowflake' ? removeOverlaps(laid) : laid
+  return mode === 'spread' ? removeOverlaps(laid) : laid
 }

@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import { type Node, type Edge, type NodeChange, type EdgeChange, applyNodeChanges, applyEdgeChanges } from '@xyflow/react'
 import type { StoredLayout } from '../types'
 
-export type LayoutMode = 'snowflake' | 'dense'
+export type LayoutMode = 'spread' | 'dense'
 export type ViewMode = 'relational' | 'conceptual'
 
 interface DiagramState {
@@ -28,7 +28,7 @@ interface DiagramState {
 export const useDiagramStore = create<DiagramState>()((set) => ({
   nodes: [],
   edges: [],
-  layoutMode: 'snowflake' as LayoutMode,
+  layoutMode: 'spread' as LayoutMode,
   viewMode: 'relational' as ViewMode,
   searchOpen: false,
   collapsedHubs: new Set<string>(),

@@ -70,7 +70,7 @@ export const useProjectStore = create<ProjectState>()((set) => ({
     const diagramStore = useDiagramStore.getState()
     diagramStore.setStoredLayout(layout)
     diagramStore.setCollapsedHubs(new Set(layout?.collapsedIds ?? []))
-    if (layout?.layoutMode === 'snowflake' || layout?.layoutMode === 'dense') {
+    if (layout?.layoutMode === 'spread' || layout?.layoutMode === 'dense') {
       diagramStore.setLayoutMode(layout.layoutMode)
     }
 

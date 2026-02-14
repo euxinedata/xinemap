@@ -10,6 +10,7 @@ import { layoutNodes } from './layoutEngine'
 import * as storage from '../persistence/gitStorage'
 import type { DV2Metadata, StoredLayout } from '../types'
 import { assignEdgeHandles } from './edgeHandles'
+import { DV2_COLORS } from './dv2Colors'
 import { TableNode } from './TableNode'
 import { EnumNode } from './EnumNode'
 import { EREdge } from './EREdge'
@@ -98,8 +99,10 @@ function DiagramPanelInner() {
   const parseResult = useEditorStore((s) => s.parseResult)
   const [focusedTableId, setFocusedTableId] = useState<string | null>(null)
   const [layoutMenuOpen, setLayoutMenuOpen] = useState(false)
+  const [browseOpen, setBrowseOpen] = useState(false)
   const [guides, setGuides] = useState<GuideLine[]>([])
   const menuRef = useRef<HTMLDivElement>(null)
+  const browseRef = useRef<HTMLDivElement>(null)
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const { fitView } = useReactFlow()
 
@@ -230,6 +233,35 @@ function DiagramPanelInner() {
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
   }, [layoutMenuOpen])
+
+  // Close browse dropdown on outside click
+  useEffect(() => {
+    if (!browseOpen) return
+    const handler = (e: MouseEvent) => {
+      if (browseRef.current && !browseRef.current.contains(e.target as HTMLElement)) {
+        setBrowseOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handler, true)
+    return () => document.removeEventListener('mousedown', handler, true)
+  }, [browseOpen])
+
+  // Build grouped entity list for browse panel
+  const browseGroups = (() => {
+    if (!parseResult) return []
+    const groups: { type: string; color: string; items: { id: string; name: string }[] }[] = [
+      { type: 'Hubs', color: DV2_COLORS.hub.bg, items: [] },
+      { type: 'Links', color: DV2_COLORS.link.bg, items: [] },
+      { type: 'Satellites', color: DV2_COLORS.satellite.bg, items: [] },
+    ]
+    for (const table of parseResult.tables) {
+      const et = parseResult.dv2Metadata.get(table.id)?.entityType
+      const target = et === 'hub' ? groups[0] : et === 'link' ? groups[1] : et === 'satellite' ? groups[2] : null
+      if (target) target.items.push({ id: table.id, name: table.name })
+    }
+    for (const g of groups) g.items.sort((a, b) => a.name.localeCompare(b.name))
+    return groups.filter((g) => g.items.length > 0)
+  })()
 
   // Auto Layout with confirmation
   const handleLayoutSelect = useCallback((mode: LayoutMode) => {
@@ -390,6 +422,37 @@ function DiagramPanelInner() {
           >
             {viewMode === 'relational' ? 'Relational' : 'Conceptual'}
           </button>
+          <div ref={browseRef} className="relative">
+            <button
+              onClick={() => setBrowseOpen((o) => !o)}
+              className="bg-[var(--c-bg-3)] border border-[var(--c-border-s)] text-[var(--c-text-3)] hover:text-[var(--c-text-1)] text-xs px-2 py-1 rounded"
+            >
+              Browse
+            </button>
+            {browseOpen && browseGroups.length > 0 && (
+              <div className="absolute top-full right-0 mt-1 bg-[var(--c-bg-1)] border border-[var(--c-border-s)] rounded shadow-lg z-10 min-w-[180px]">
+                {browseGroups.map((group) => (
+                  <div key={group.type}>
+                    <div className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-white" style={{ backgroundColor: group.color }}>
+                      {group.type}
+                    </div>
+                    {group.items.map((item) => (
+                      <div
+                        key={item.id}
+                        onClick={() => {
+                          fitView({ nodes: [{ id: item.id }], duration: 300, padding: 0.5 })
+                          setBrowseOpen(false)
+                        }}
+                        className="px-3 py-1.5 text-xs cursor-pointer text-[var(--c-text-3)] hover:bg-[var(--c-bg-3)] hover:text-[var(--c-text-1)]"
+                      >
+                        {item.name}
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </Panel>
         {selectedNodes.length >= 2 && (
           <Panel position="bottom-center" className="flex gap-1 bg-[var(--c-bg-1)] border border-[var(--c-border-s)] rounded px-2 py-1 shadow">

@@ -99,16 +99,11 @@ export function buildFocusGraph(
         data: { sourceCardinality: srcCard, targetCardinality: tgtCard, fromCol: ref.fromColumns[0], toCol: ref.toColumns[0] },
       })
     } else {
-      // One or both ends are stubs — simple handles
-      const sourceHandle = fromFull ? undefined : `${ref.fromTable}-source`
-      const targetHandle = toFull ? undefined : `${ref.toTable}-target`
-
+      // One or both ends are stubs — assignEdgeHandles picks L/R
       edges.push({
         id: ref.id,
         source: ref.fromTable,
         target: ref.toTable,
-        sourceHandle,
-        targetHandle,
         type: 'smoothstep',
         style,
         data: {

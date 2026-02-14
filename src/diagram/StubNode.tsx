@@ -19,25 +19,15 @@ function StubNodeComponent({ data, id }: NodeProps) {
       className="rounded border border-[var(--c-border-s)] bg-[var(--c-bg-3)] text-xs px-3 py-2 flex items-center gap-2 cursor-pointer hover:bg-[var(--c-bg-2)] shadow"
       onClick={onExpand}
     >
-      <Handle
-        type="target"
-        position={Position.Left}
-        id={`${id}-target`}
-        className="!w-2 !h-2"
-        style={{ background: color }}
-      />
+      <Handle type="target" position={Position.Left} id={`${id}-L-tgt`} className="!w-2 !h-2" style={{ background: color }} />
+      <Handle type="source" position={Position.Left} id={`${id}-L-src`} className="!w-2 !h-2" style={{ background: color }} />
       <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: color }} />
       <span className="text-[var(--c-text-2)] truncate">{label}</span>
       {entityType && (
         <span className="text-[9px] text-[var(--c-text-4)] ml-auto">{entityType}</span>
       )}
-      <Handle
-        type="source"
-        position={Position.Right}
-        id={`${id}-source`}
-        className="!w-2 !h-2"
-        style={{ background: color }}
-      />
+      <Handle type="target" position={Position.Right} id={`${id}-R-tgt`} className="!w-2 !h-2" style={{ background: color }} />
+      <Handle type="source" position={Position.Right} id={`${id}-R-src`} className="!w-2 !h-2" style={{ background: color }} />
     </div>
   )
 }

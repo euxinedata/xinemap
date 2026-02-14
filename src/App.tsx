@@ -11,14 +11,15 @@ import { useProjectStore } from './store/useProjectStore'
 export default function App() {
   useParseEffect()
 
-  // Auto-load the most recently updated project on startup
+  // Auto-load the last opened project on startup
   useEffect(() => {
     const store = useProjectStore.getState()
     store.loadProjectList().then(() => {
+      const lastId = localStorage.getItem('dglml-last-project')
       const projects = useProjectStore.getState().projects
       if (projects.length === 0) return
-      const latest = projects.reduce((a, b) => (a.updatedAt > b.updatedAt ? a : b))
-      store.openProject(latest.id)
+      const target = lastId ? projects.find((p) => p.id === lastId) : undefined
+      if (target) store.openProject(target.id)
     })
   }, [])
   return (

@@ -18,6 +18,9 @@ export function Toolbar() {
   const newProject = useProjectStore((s) => s.newProject)
   const currentProjectId = useProjectStore((s) => s.currentProjectId)
   const parseResult = useEditorStore((s) => s.parseResult)
+  const dbml = useEditorStore((s) => s.dbml)
+  const lastSavedDbml = useEditorStore((s) => s.lastSavedDbml)
+  const isDirty = dbml !== lastSavedDbml && lastSavedDbml !== ''
   const fileRef = useRef<HTMLInputElement>(null)
 
   const handleImport = () => fileRef.current?.click()
@@ -80,9 +83,9 @@ export function Toolbar() {
               setFileOpen(true)
             }
           }}
-          className={btnClass}
+          className={isDirty ? 'text-sm text-amber-400 hover:text-amber-300 px-3 py-1' : btnClass}
         >
-          Save
+          Save{isDirty ? ' *' : ''}
         </button>
         <button onClick={handleImport} className={btnClass}>Import</button>
         {parseResult && parseResult.dv2Metadata.size > 0 && (

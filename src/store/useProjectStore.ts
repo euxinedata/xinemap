@@ -47,6 +47,7 @@ export const useProjectStore = create<ProjectState>()((set) => ({
       await storage.saveLayout(id, storedLayout)
     }
 
+    useEditorStore.getState().setLastSavedDbml(dbml)
     const projects = await storage.listProjects()
     const history = await storage.getHistory(id)
     set({ currentProjectId: id, projects, commitHistory: history })
@@ -56,6 +57,7 @@ export const useProjectStore = create<ProjectState>()((set) => ({
     const project = await storage.getProject(id)
     if (!project) return
     useEditorStore.getState().setDbml(project.dbml)
+    useEditorStore.getState().setLastSavedDbml(project.dbml)
 
     const sourceConfig = await storage.getSourceConfig(id)
     if (sourceConfig) {
@@ -89,6 +91,7 @@ export const useProjectStore = create<ProjectState>()((set) => ({
 
   newProject: () => {
     useEditorStore.getState().setDbml('')
+    useEditorStore.getState().setLastSavedDbml('')
     useSourceConfigStore.getState().setSourceConfig({})
     useDiagramStore.getState().setStoredLayout(null)
     useDiagramStore.getState().setCollapsedHubs(new Set())
@@ -108,6 +111,7 @@ export const useProjectStore = create<ProjectState>()((set) => ({
     const content = await storage.getCommitContent(id, oid)
     if (!content) return
     useEditorStore.getState().setDbml(content)
+    useEditorStore.getState().setLastSavedDbml(content)
     await storage.restoreCommit(id, oid)
     const history = await storage.getHistory(id)
     set({ commitHistory: history })

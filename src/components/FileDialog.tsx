@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { useProjectStore } from '../store/useProjectStore'
 
 interface FileDialogProps {
@@ -8,39 +8,19 @@ interface FileDialogProps {
 
 export function FileDialog({ isOpen, onClose }: FileDialogProps) {
   const {
-    currentProjectId,
     projects,
     loadProjectList,
-    saveCurrentProject,
     openProject,
     deleteProject,
   } = useProjectStore()
 
-  const [saveName, setSaveName] = useState('')
-
   useEffect(() => {
     if (isOpen) {
       loadProjectList()
-      setSaveName('')
     }
   }, [isOpen, loadProjectList])
 
   if (!isOpen) return null
-
-  const currentProject = projects.find((p) => p.id === currentProjectId)
-
-  const handleSave = async () => {
-    const name = saveName.trim()
-    if (!name) return
-    await saveCurrentProject(name)
-    onClose()
-  }
-
-  const handleUpdate = async () => {
-    if (!currentProject) return
-    await saveCurrentProject(currentProject.name)
-    onClose()
-  }
 
   const handleOpen = async (id: string) => {
     await openProject(id)
@@ -127,35 +107,6 @@ export function FileDialog({ isOpen, onClose }: FileDialogProps) {
               </table>
             )}
           </div>
-
-        {/* Save section */}
-        <div className="border-t border-[var(--c-border)] px-4 py-3">
-          <div className="flex items-center gap-2">
-            <input
-              type="text"
-              value={saveName}
-              onChange={(e) => setSaveName(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleSave()}
-              placeholder="Project name"
-              className="flex-1 rounded border border-[var(--c-border-s)] bg-[var(--c-bg-hover)] px-2 py-1 text-sm text-[var(--c-text-1)] placeholder-[var(--c-text-4)] outline-none focus:border-blue-500"
-            />
-            <button
-              onClick={handleSave}
-              disabled={!saveName.trim()}
-              className="rounded bg-blue-600 px-3 py-1 text-sm text-white hover:bg-blue-500 disabled:opacity-40"
-            >
-              Save As
-            </button>
-            {currentProject && (
-              <button
-                onClick={handleUpdate}
-                className="rounded bg-[var(--c-border-s)] px-3 py-1 text-sm text-[var(--c-text-1)] hover:bg-[var(--c-text-4)]"
-              >
-                Update
-              </button>
-            )}
-          </div>
-        </div>
       </div>
     </div>
   )

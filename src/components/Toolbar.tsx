@@ -56,7 +56,8 @@ export function Toolbar() {
           const project = state.projects.find((p) => p.id === state.currentProjectId)
           if (project) state.saveCurrentProject(project.name)
         } else {
-          setFileOpen(true)
+          const name = window.prompt('Project name')
+          if (name?.trim()) state.saveCurrentProject(name.trim())
         }
       }
     }
@@ -80,7 +81,8 @@ export function Toolbar() {
               const project = state.projects.find((p) => p.id === state.currentProjectId)
               if (project) state.saveCurrentProject(project.name)
             } else {
-              setFileOpen(true)
+              const name = window.prompt('Project name')
+              if (name?.trim()) state.saveCurrentProject(name.trim())
             }
           }}
           className={isDirty ? 'text-sm text-amber-400 hover:text-amber-300 px-3 py-1' : btnClass}

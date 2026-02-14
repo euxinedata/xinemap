@@ -10,7 +10,7 @@ function isKeyColumn(col: { isPrimaryKey: boolean; isForeignKey: boolean; dv2Rol
   return col.isPrimaryKey || col.isForeignKey || !!col.dv2Role
 }
 
-function TableNodeComponent({ data, id }: NodeProps) {
+function TableNodeComponent({ data, id, selected }: NodeProps) {
   const { table, dv2EntityType, satelliteCount, isCollapsed, onCollapse } = data as TableNodeData
   const dv2Colors = dv2EntityType ? DV2_COLORS[dv2EntityType] : undefined
   const headerColor = dv2Colors?.bg ?? table.headerColor ?? '#374151'
@@ -25,7 +25,7 @@ function TableNodeComponent({ data, id }: NodeProps) {
   return (
     <div
       className="rounded-md border bg-[var(--c-bg-3)] text-xs min-w-[180px] shadow-lg"
-      style={{ borderColor: borderColor ?? 'var(--c-border-s)' }}
+      style={{ borderColor: borderColor ?? 'var(--c-border-s)', ...(selected ? { outline: '2px solid var(--c-text-1)', outlineOffset: 2 } : {}) }}
     >
       <div
         className="px-3 py-2 font-semibold text-white rounded-t-md flex items-center justify-between"

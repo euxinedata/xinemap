@@ -4,12 +4,12 @@ import { DV2_COLORS } from '../dv2Colors'
 
 const c = DV2_COLORS.satellite
 
-function SatelliteNodeComponent({ data }: NodeProps) {
+function SatelliteNodeComponent({ data, selected }: NodeProps) {
   const name = (data as any).label ?? ''
   return (
     <div
       className="flex items-center justify-center rounded-lg border-2 text-sm font-semibold text-white px-6 py-3 min-w-[180px]"
-      style={{ backgroundColor: c.bg, borderColor: c.border }}
+      style={{ backgroundColor: c.bg, borderColor: c.border, ...(selected ? { outline: '2px solid var(--c-text-1)', outlineOffset: 2 } : {}) }}
     >
       <Handle type="target" position={Position.Top} id="top-target" style={{ background: c.handle }} className="!w-2 !h-2" />
       <Handle type="source" position={Position.Top} id="top-source" style={{ background: c.handle }} className="!w-2 !h-2" />

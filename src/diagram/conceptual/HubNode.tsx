@@ -4,12 +4,12 @@ import { DV2_COLORS } from '../dv2Colors'
 
 const c = DV2_COLORS.hub
 
-function HubNodeComponent({ data }: NodeProps) {
+function HubNodeComponent({ data, selected }: NodeProps) {
   const name = (data as any).label ?? ''
   return (
     <div
       className="flex items-center justify-center rounded-full border-2 text-sm font-semibold text-white w-[120px] h-[120px] text-center"
-      style={{ backgroundColor: c.bg, borderColor: c.border }}
+      style={{ backgroundColor: c.bg, borderColor: c.border, ...(selected ? { outline: '2px solid var(--c-text-1)', outlineOffset: 2 } : {}) }}
     >
       <Handle type="target" position={Position.Top} id="top-target" style={{ background: c.handle }} className="!w-2 !h-2" />
       <Handle type="source" position={Position.Top} id="top-source" style={{ background: c.handle }} className="!w-2 !h-2" />

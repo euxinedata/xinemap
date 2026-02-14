@@ -524,6 +524,11 @@ function DiagramPanelInner() {
             )}
           </div>
         </Panel>
+        {selectedNodes.length === 1 && (
+          <Panel position="bottom-center" className="bg-[var(--c-bg-1)] border border-[var(--c-border-s)] rounded px-2 py-1 shadow">
+            <span className="text-[10px] text-[var(--c-text-4)]">{navigator.platform.includes('Mac') ? '\u2318' : 'Ctrl'}+Click to select more</span>
+          </Panel>
+        )}
         {selectedNodes.length >= 2 && (
           <Panel position="bottom-center" className="flex gap-1 bg-[var(--c-bg-1)] border border-[var(--c-border-s)] rounded px-2 py-1 shadow">
             {([['left', 'Align Left'], ['centerX', 'Center H'], ['right', 'Align Right'], ['top', 'Align Top'], ['centerY', 'Center V'], ['bottom', 'Align Bottom']] as const).map(([axis, label]) => (

@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { Allotment } from 'allotment'
 import 'allotment/dist/style.css'
 import { Toolbar } from './components/Toolbar'
@@ -5,9 +6,21 @@ import { StatusBar } from './components/StatusBar'
 import { EditorPanel } from './editor/EditorPanel'
 import { DiagramPanel } from './diagram/DiagramPanel'
 import { useParseEffect } from './hooks/useParseEffect'
+import { useProjectStore } from './store/useProjectStore'
 
 export default function App() {
   useParseEffect()
+
+  // Auto-load the most recently updated project on startup
+  useEffect(() => {
+    const store = useProjectStore.getState()
+    store.loadProjectList().then(() => {
+      const projects = useProjectStore.getState().projects
+      if (projects.length === 0) return
+      const latest = projects.reduce((a, b) => (a.updatedAt > b.updatedAt ? a : b))
+      store.openProject(latest.id)
+    })
+  }, [])
   return (
     <>
       <Toolbar />

@@ -5,7 +5,7 @@ import type { LayoutMode } from '../store/useDiagramStore'
 const elk = new ELK()
 
 const conceptualSizes: Record<string, { width: number; height: number }> = {
-  hubNode: { width: 120, height: 120 },
+  hubNode: { width: 180, height: 80 },
   satelliteNode: { width: 180, height: 50 },
   linkNode: { width: 180, height: 50 },
   noteNode: { width: 160, height: 80 },

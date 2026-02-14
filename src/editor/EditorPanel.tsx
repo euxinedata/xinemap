@@ -18,7 +18,6 @@ export function EditorPanel() {
     monacoRef.current = monaco
     useEditorStore.getState().setScrollToLine((line: number) => {
       editor.revealLineInCenter(line)
-      editor.setPosition({ lineNumber: line, column: 1 })
       editor.focus()
     })
   }

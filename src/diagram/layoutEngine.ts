@@ -7,7 +7,7 @@ const elk = new ELK()
 const conceptualSizes: Record<string, { width: number; height: number }> = {
   hubNode: { width: 120, height: 120 },
   satelliteNode: { width: 180, height: 50 },
-  linkNode: { width: 100, height: 70 },
+  linkNode: { width: 180, height: 50 },
   noteNode: { width: 160, height: 80 },
   conceptNode: { width: 140, height: 50 },
   stubNode: { width: 160, height: 36 },
@@ -20,7 +20,11 @@ function getNodeSize(node: Node): { width: number; height: number } {
   const preset = node.type ? conceptualSizes[node.type] : undefined
   if (preset) return preset
   const width = 250
-  const height = 40 + ((node.data as any)?.table?.columns?.length ?? 4) * 28
+  const cols = (node.data as any)?.table?.columns ?? []
+  const keyCount = cols.filter((c: any) => c.isPrimaryKey || c.isForeignKey || !!c.dv2Role).length
+  const hasPayload = cols.length > keyCount
+  const visibleRows = keyCount + (hasPayload ? 1 : 0)
+  const height = 40 + Math.max(visibleRows, 1) * 28
   return { width, height }
 }
 
@@ -101,8 +105,8 @@ export async function layoutNodes(nodes: Node[], edges: Edge[], mode: LayoutMode
   const layoutOptions: Record<string, string> = mode === 'snowflake'
     ? {
         'elk.algorithm': 'stress',
-        'elk.stress.desiredEdgeLength': '500',
-        'elk.spacing.nodeNode': '100',
+        'elk.stress.desiredEdgeLength': '250',
+        'elk.spacing.nodeNode': '60',
         'elk.separateConnectedComponents': 'true',
         'elk.spacing.componentComponent': '150',
       }

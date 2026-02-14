@@ -358,6 +358,65 @@ function DiagramPanelInner() {
     savePositions(updated)
   }, [setNodes, setEdges, savePositions])
 
+  const distributeNodes = useCallback((mode: 'spaceH' | 'spaceV' | 'centerH' | 'centerV' | 'compactH' | 'compactV') => {
+    const sel = useDiagramStore.getState().nodes.filter((n) => n.selected)
+    if (sel.length < 3 && (mode === 'spaceH' || mode === 'spaceV' || mode === 'centerH' || mode === 'centerV')) return
+    if (sel.length < 2) return
+
+    const selIds = new Set(sel.map((n) => n.id))
+    const posMap = new Map<string, { x: number; y: number }>()
+
+    if (mode === 'spaceH' || mode === 'compactH') {
+      const sorted = [...sel].sort((a, b) => a.position.x - b.position.x)
+      const totalWidth = sorted.reduce((s, n) => s + (n.measured?.width ?? 250), 0)
+      const span = sorted[sorted.length - 1].position.x + (sorted[sorted.length - 1].measured?.width ?? 250) - sorted[0].position.x
+      const gap = mode === 'compactH' ? 0 : (span - totalWidth) / (sorted.length - 1)
+      let x = sorted[0].position.x
+      for (const n of sorted) {
+        posMap.set(n.id, { x, y: n.position.y })
+        x += (n.measured?.width ?? 250) + gap
+      }
+    } else if (mode === 'spaceV' || mode === 'compactV') {
+      const sorted = [...sel].sort((a, b) => a.position.y - b.position.y)
+      const totalHeight = sorted.reduce((s, n) => s + (n.measured?.height ?? 100), 0)
+      const span = sorted[sorted.length - 1].position.y + (sorted[sorted.length - 1].measured?.height ?? 100) - sorted[0].position.y
+      const gap = mode === 'compactV' ? 0 : (span - totalHeight) / (sorted.length - 1)
+      let y = sorted[0].position.y
+      for (const n of sorted) {
+        posMap.set(n.id, { x: n.position.x, y })
+        y += (n.measured?.height ?? 100) + gap
+      }
+    } else if (mode === 'centerH') {
+      const sorted = [...sel].sort((a, b) => a.position.x - b.position.x)
+      const firstCenter = sorted[0].position.x + (sorted[0].measured?.width ?? 250) / 2
+      const lastCenter = sorted[sorted.length - 1].position.x + (sorted[sorted.length - 1].measured?.width ?? 250) / 2
+      const step = (lastCenter - firstCenter) / (sorted.length - 1)
+      for (let i = 0; i < sorted.length; i++) {
+        const n = sorted[i]
+        const cx = firstCenter + step * i
+        posMap.set(n.id, { x: cx - (n.measured?.width ?? 250) / 2, y: n.position.y })
+      }
+    } else {
+      const sorted = [...sel].sort((a, b) => a.position.y - b.position.y)
+      const firstCenter = sorted[0].position.y + (sorted[0].measured?.height ?? 100) / 2
+      const lastCenter = sorted[sorted.length - 1].position.y + (sorted[sorted.length - 1].measured?.height ?? 100) / 2
+      const step = (lastCenter - firstCenter) / (sorted.length - 1)
+      for (let i = 0; i < sorted.length; i++) {
+        const n = sorted[i]
+        const cy = firstCenter + step * i
+        posMap.set(n.id, { x: n.position.x, y: cy - (n.measured?.height ?? 100) / 2 })
+      }
+    }
+
+    const updated = useDiagramStore.getState().nodes.map((n) => {
+      const pos = posMap.get(n.id)
+      return pos ? { ...n, position: pos } : n
+    })
+    setNodes(updated)
+    setEdges(assignEdgeHandles(updated, useDiagramStore.getState().edges))
+    savePositions(updated)
+  }, [setNodes, setEdges, savePositions])
+
   const handleEdgeClick = useCallback((_: React.MouseEvent, edge: Edge) => {
     const line = (edge.data as any)?.line
     if (line) useEditorStore.getState().scrollToLine?.(line)
@@ -531,14 +590,39 @@ function DiagramPanelInner() {
         )}
         {selectedNodes.length >= 2 && (
           <Panel position="bottom-center" className="flex gap-1 bg-[var(--c-bg-1)] border border-[var(--c-border-s)] rounded px-2 py-1 shadow">
-            {([['left', 'Align Left'], ['centerX', 'Center H'], ['right', 'Align Right'], ['top', 'Align Top'], ['centerY', 'Center V'], ['bottom', 'Align Bottom']] as const).map(([axis, label]) => (
+            {([
+              ['left', 'Align Left', <svg key="left" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5"><line x1="2" y1="1" x2="2" y2="13" /><rect x="4" y="3" width="8" height="3" rx="0.5" fill="currentColor" opacity="0.3" /><rect x="4" y="8" width="5" height="3" rx="0.5" fill="currentColor" opacity="0.3" /></svg>],
+              ['centerX', 'Center H', <svg key="centerX" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5"><line x1="7" y1="1" x2="7" y2="13" strokeDasharray="2 1" /><rect x="2" y="3" width="10" height="3" rx="0.5" fill="currentColor" opacity="0.3" /><rect x="3.5" y="8" width="7" height="3" rx="0.5" fill="currentColor" opacity="0.3" /></svg>],
+              ['right', 'Align Right', <svg key="right" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5"><line x1="12" y1="1" x2="12" y2="13" /><rect x="2" y="3" width="8" height="3" rx="0.5" fill="currentColor" opacity="0.3" /><rect x="5" y="8" width="5" height="3" rx="0.5" fill="currentColor" opacity="0.3" /></svg>],
+              ['top', 'Align Top', <svg key="top" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5"><line x1="1" y1="2" x2="13" y2="2" /><rect x="3" y="4" width="3" height="8" rx="0.5" fill="currentColor" opacity="0.3" /><rect x="8" y="4" width="3" height="5" rx="0.5" fill="currentColor" opacity="0.3" /></svg>],
+              ['centerY', 'Center V', <svg key="centerY" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5"><line x1="1" y1="7" x2="13" y2="7" strokeDasharray="2 1" /><rect x="3" y="2" width="3" height="10" rx="0.5" fill="currentColor" opacity="0.3" /><rect x="8" y="3.5" width="3" height="7" rx="0.5" fill="currentColor" opacity="0.3" /></svg>],
+              ['bottom', 'Align Bottom', <svg key="bottom" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5"><line x1="1" y1="12" x2="13" y2="12" /><rect x="3" y="2" width="3" height="8" rx="0.5" fill="currentColor" opacity="0.3" /><rect x="8" y="5" width="3" height="5" rx="0.5" fill="currentColor" opacity="0.3" /></svg>],
+            ] as [string, string, React.ReactNode][]).map(([axis, label, icon]) => (
               <button
                 key={axis}
-                onClick={() => alignNodes(axis)}
-                className="text-[10px] px-2 py-1 rounded text-[var(--c-text-3)] hover:text-[var(--c-text-1)] hover:bg-[var(--c-bg-3)] cursor-pointer"
-                title={label}
+                onClick={() => alignNodes(axis as any)}
+                className="group relative p-1.5 rounded text-[var(--c-text-3)] hover:text-[var(--c-text-1)] hover:bg-[var(--c-bg-3)] cursor-pointer"
               >
-                {label}
+                {icon}
+                <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-1.5 py-0.5 text-[10px] rounded bg-[var(--c-bg-3)] border border-[var(--c-border-s)] text-[var(--c-text-1)] whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none">{label}</span>
+              </button>
+            ))}
+            <div className="w-px h-5 bg-[var(--c-border-s)] mx-1" />
+            {([
+              ['spaceH', 'Space Evenly H', <svg key="spaceH" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="1" y="4" width="2" height="6" rx="0.5" fill="currentColor" opacity="0.3" /><rect x="6" y="4" width="2" height="6" rx="0.5" fill="currentColor" opacity="0.3" /><rect x="11" y="4" width="2" height="6" rx="0.5" fill="currentColor" opacity="0.3" /><line x1="3.5" y1="7" x2="5.5" y2="7" strokeDasharray="1 1" /><line x1="8.5" y1="7" x2="10.5" y2="7" strokeDasharray="1 1" /></svg>],
+              ['spaceV', 'Space Evenly V', <svg key="spaceV" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="4" y="1" width="6" height="2" rx="0.5" fill="currentColor" opacity="0.3" /><rect x="4" y="6" width="6" height="2" rx="0.5" fill="currentColor" opacity="0.3" /><rect x="4" y="11" width="6" height="2" rx="0.5" fill="currentColor" opacity="0.3" /><line x1="7" y1="3.5" x2="7" y2="5.5" strokeDasharray="1 1" /><line x1="7" y1="8.5" x2="7" y2="10.5" strokeDasharray="1 1" /></svg>],
+              ['centerH', 'Equal Centers H', <svg key="centerH" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="1" y="3" width="2" height="8" rx="0.5" fill="currentColor" opacity="0.3" /><rect x="6" y="5" width="2" height="4" rx="0.5" fill="currentColor" opacity="0.3" /><rect x="11" y="3" width="2" height="8" rx="0.5" fill="currentColor" opacity="0.3" /><circle cx="2" cy="7" r="0.8" fill="currentColor" /><circle cx="7" cy="7" r="0.8" fill="currentColor" /><circle cx="12" cy="7" r="0.8" fill="currentColor" /></svg>],
+              ['centerV', 'Equal Centers V', <svg key="centerV" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="3" y="1" width="8" height="2" rx="0.5" fill="currentColor" opacity="0.3" /><rect x="5" y="6" width="4" height="2" rx="0.5" fill="currentColor" opacity="0.3" /><rect x="3" y="11" width="8" height="2" rx="0.5" fill="currentColor" opacity="0.3" /><circle cx="7" cy="2" r="0.8" fill="currentColor" /><circle cx="7" cy="7" r="0.8" fill="currentColor" /><circle cx="7" cy="12" r="0.8" fill="currentColor" /></svg>],
+              ['compactH', 'Compact H', <svg key="compactH" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="2" y="3" width="3" height="8" rx="0.5" fill="currentColor" opacity="0.3" /><rect x="5.5" y="4" width="3" height="6" rx="0.5" fill="currentColor" opacity="0.3" /><rect x="9" y="3" width="3" height="8" rx="0.5" fill="currentColor" opacity="0.3" /><line x1="1" y1="1" x2="1" y2="13" opacity="0.4" /><line x1="13" y1="1" x2="13" y2="13" opacity="0.4" /></svg>],
+              ['compactV', 'Compact V', <svg key="compactV" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="3" y="2" width="8" height="3" rx="0.5" fill="currentColor" opacity="0.3" /><rect x="4" y="5.5" width="6" height="3" rx="0.5" fill="currentColor" opacity="0.3" /><rect x="3" y="9" width="8" height="3" rx="0.5" fill="currentColor" opacity="0.3" /><line x1="1" y1="1" x2="13" y2="1" opacity="0.4" /><line x1="1" y1="13" x2="13" y2="13" opacity="0.4" /></svg>],
+            ] as [string, string, React.ReactNode][]).map(([mode, label, icon]) => (
+              <button
+                key={mode}
+                onClick={() => distributeNodes(mode as any)}
+                className="group relative p-1.5 rounded text-[var(--c-text-3)] hover:text-[var(--c-text-1)] hover:bg-[var(--c-bg-3)] cursor-pointer"
+              >
+                {icon}
+                <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-1.5 py-0.5 text-[10px] rounded bg-[var(--c-bg-3)] border border-[var(--c-border-s)] text-[var(--c-text-1)] whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none">{label}</span>
               </button>
             ))}
           </Panel>

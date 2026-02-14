@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from 'react'
-import { ReactFlow, ReactFlowProvider, Controls, Background, BackgroundVariant, applyNodeChanges, applyEdgeChanges, useReactFlow, type Node, type Edge, type NodeChange, type EdgeChange } from '@xyflow/react'
+import { useState, useEffect, useCallback, useRef } from 'react'
+import { ReactFlow, ReactFlowProvider, Controls, Background, BackgroundVariant, applyNodeChanges, applyEdgeChanges, useReactFlow, useViewport, type Node, type Edge, type NodeChange, type EdgeChange } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import { useEditorStore } from '../store/useEditorStore'
 import { buildFocusGraph } from './focusGraph'
@@ -9,9 +9,26 @@ import { TableNode } from './TableNode'
 import { StubNode } from './StubNode'
 import { EREdge } from './EREdge'
 import { FocusEditPanel } from './FocusEditPanel'
+import { computeSnap, type GuideLine } from './snapAlign'
 
 const nodeTypes = { tableNode: TableNode, stubNode: StubNode }
 const edgeTypes = { erEdge: EREdge }
+
+function SnapGuides({ guides }: { guides: GuideLine[] }) {
+  const { x: vx, y: vy, zoom } = useViewport()
+  if (guides.length === 0) return null
+  return (
+    <div className="pointer-events-none absolute inset-0 overflow-hidden z-50">
+      {guides.map((g, i) =>
+        g.axis === 'x' ? (
+          <div key={i} className="absolute top-0 h-full" style={{ left: g.pos * zoom + vx, width: 0, borderLeft: '1px dashed rgba(120,120,120,0.6)' }} />
+        ) : (
+          <div key={i} className="absolute left-0 w-full" style={{ top: g.pos * zoom + vy, height: 0, borderTop: '1px dashed rgba(120,120,120,0.6)' }} />
+        ),
+      )}
+    </div>
+  )
+}
 
 interface FocusModalProps {
   tableId: string
@@ -24,11 +41,30 @@ function FocusModalInner({ tableId, onClose }: FocusModalProps) {
   const [modalNodes, setModalNodes] = useState<Node[]>([])
   const [modalEdges, setModalEdges] = useState<Edge[]>([])
   const [editOpen, setEditOpen] = useState(false)
+  const [guides, setGuides] = useState<GuideLine[]>([])
+  const nodesRef = useRef<Node[]>([])
+  nodesRef.current = modalNodes
   const parseResult = useEditorStore((s) => s.parseResult)
   const { fitView } = useReactFlow()
 
   const onNodesChange = useCallback((changes: NodeChange[]) => {
-    setModalNodes((nds) => applyNodeChanges(changes, nds))
+    const modified = changes.map((change) => {
+      if (change.type === 'position' && change.dragging && change.position) {
+        const node = nodesRef.current.find((n) => n.id === change.id)
+        if (node) {
+          const w = node.measured?.width ?? 250
+          const h = node.measured?.height ?? 100
+          const snap = computeSnap(change.id, change.position, { width: w, height: h }, nodesRef.current)
+          setGuides(snap.guides)
+          return { ...change, position: { x: snap.x, y: snap.y } }
+        }
+      }
+      if (change.type === 'position' && !change.dragging) {
+        setGuides([])
+      }
+      return change
+    })
+    setModalNodes((nds) => applyNodeChanges(modified, nds))
   }, [])
 
   const onEdgesChange = useCallback((changes: EdgeChange[]) => {
@@ -56,6 +92,15 @@ function FocusModalInner({ tableId, onClose }: FocusModalProps) {
     setModalEdges(assignEdgeHandles(laid, edges))
     requestAnimationFrame(() => fitView({ padding: 0.2 }))
   }, [parseResult, currentTableId, expandedIds, handleExpand, handleCollapse, fitView])
+
+  // Reassign edge handles after drag stop
+  const handleNodeDragStop = useCallback(() => {
+    setGuides([])
+    setModalNodes((nds) => {
+      setModalEdges((eds) => assignEdgeHandles(nds, eds))
+      return nds
+    })
+  }, [])
 
   // Double-click any node → make it the center
   const handleNodeDoubleClick = useCallback((_: React.MouseEvent, node: Node) => {
@@ -153,11 +198,13 @@ function FocusModalInner({ tableId, onClose }: FocusModalProps) {
               edgeTypes={edgeTypes}
               onNodesChange={onNodesChange}
               onEdgesChange={onEdgesChange}
+              onNodeDragStop={handleNodeDragStop}
               onNodeDoubleClick={handleNodeDoubleClick}
               proOptions={{ hideAttribution: true }}
             >
               <Controls />
               <Background variant={BackgroundVariant.Dots} color="var(--c-dots)" />
+              <SnapGuides guides={guides} />
             </ReactFlow>
           </div>
         </div>

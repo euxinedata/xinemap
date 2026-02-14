@@ -49,9 +49,10 @@ export function parseDbml(source: string): ParseResult {
     // Store entity type hints from partials (keyed by tableId)
     const entityHintMap = new Map<string, DV2EntityType>()
 
-    const tables = exported.schemas.flatMap((schema) => {
+    const tables = exported.schemas.flatMap((schema, schemaIdx) => {
       const schemaName = schema.name || 'public'
-      return schema.tables.map((table) => {
+      const rawTables = (database as any).schemas?.[schemaIdx]?.tables ?? []
+      return schema.tables.map((table, tableIdx) => {
         const tableId = `${schemaName}.${table.name}`
 
         // Extract entity type from TablePartial injections
@@ -59,10 +60,13 @@ export function parseDbml(source: string): ParseResult {
         const hint = entityTypeFromPartials(partials)
         if (hint) entityHintMap.set(tableId, hint)
 
+        const tableLine = rawTables[tableIdx]?.token?.start?.line
+
         return {
           id: tableId,
           schema: schemaName,
           name: table.name,
+          ...(tableLine != null ? { line: tableLine } : {}),
           columns: table.fields.map((field) => ({
             name: field.name,
             type: field.type?.type_name ?? String(field.type ?? ''),
@@ -82,8 +86,10 @@ export function parseDbml(source: string): ParseResult {
       })
     })
 
-    const refs = exported.schemas.flatMap((schema) => {
+    const refs = exported.schemas.flatMap((schema, schemaIdx) => {
       const schemaName = schema.name || 'public'
+      // Access raw refs for token/line info (exported refs don't include tokens)
+      const rawRefs = (database as any).schemas?.[schemaIdx]?.refs ?? []
       return schema.refs.map((ref, idx) => {
         const from = ref.endpoints[0]
         const to = ref.endpoints[1]
@@ -98,6 +104,7 @@ export function parseDbml(source: string): ParseResult {
 
         const fromSchema = from.schemaName || schemaName
         const toSchema = to.schemaName || schemaName
+        const line = rawRefs[idx]?.token?.start?.line
 
         return {
           id: `ref-${schemaName}-${idx}`,
@@ -106,6 +113,7 @@ export function parseDbml(source: string): ParseResult {
           toTable: `${toSchema}.${to.tableName}`,
           toColumns: to.fieldNames,
           type,
+          ...(line != null ? { line } : {}),
         }
       })
     })

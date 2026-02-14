@@ -16,6 +16,11 @@ export function EditorPanel() {
   const handleMount: OnMount = (editor, monaco) => {
     editorRef.current = editor
     monacoRef.current = monaco
+    useEditorStore.getState().setScrollToLine((line: number) => {
+      editor.revealLineInCenter(line)
+      editor.setPosition({ lineNumber: line, column: 1 })
+      editor.focus()
+    })
   }
 
   // Update error markers when parse errors change

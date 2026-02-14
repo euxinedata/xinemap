@@ -21,6 +21,7 @@ export interface TableInfo {
   headerColor?: string
   note?: string
   group?: string
+  line?: number
 }
 
 export interface RefInfo {
@@ -31,6 +32,7 @@ export interface RefInfo {
   toColumns: string[]
   type: '1-1' | '1-n' | 'n-1' | 'n-n'
   color?: string
+  line?: number
 }
 
 export interface EnumInfo {

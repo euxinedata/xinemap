@@ -18,7 +18,7 @@ export function parseResultToFlow(result: ParseResult): { nodes: Node[]; edges: 
       id: table.id,
       type: 'tableNode',
       position: { x: 0, y: 0 },
-      data: { table, dv2EntityType: result.dv2Metadata.get(table.id)?.entityType },
+      data: { table, dv2EntityType: result.dv2Metadata.get(table.id)?.entityType, line: table.line },
     })
   }
 
@@ -50,7 +50,7 @@ export function parseResultToFlow(result: ParseResult): { nodes: Node[]; edges: 
       target: ref.toTable,
       type: 'erEdge',
       style: { stroke: strokeColor },
-      data: { sourceCardinality: srcCard, targetCardinality: tgtCard, fromCol: ref.fromColumns[0], toCol: ref.toColumns[0] },
+      data: { sourceCardinality: srcCard, targetCardinality: tgtCard, fromCol: ref.fromColumns[0], toCol: ref.toColumns[0], line: ref.line },
     })
   }
 

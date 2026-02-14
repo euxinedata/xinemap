@@ -77,3 +77,8 @@ body {
 .react-flow__controls-button:last-child {
   border-bottom: none;
 }
+
+/* Edge hover highlight (covers smoothstep and other non-custom edges) */
+.react-flow__edge:hover path {
+  stroke-width: 2.5;
+}

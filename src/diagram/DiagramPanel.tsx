@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { ReactFlow, ReactFlowProvider, Controls, Background, BackgroundVariant, Panel, useReactFlow, type Node, type Edge } from '@xyflow/react'
+import { ReactFlow, ReactFlowProvider, Controls, Background, BackgroundVariant, Panel, useReactFlow, useViewport, type Node, type Edge } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import { useDiagramStore, type LayoutMode, type ViewMode } from '../store/useDiagramStore'
 import { useEditorStore } from '../store/useEditorStore'
@@ -20,6 +20,7 @@ import { NoteNode } from './conceptual/NoteNode'
 import { ConceptNode } from './conceptual/ConceptNode'
 import { CommandPalette } from '../components/CommandPalette'
 import { FocusModal } from './FocusModal'
+import { computeSnap, type GuideLine } from './snapAlign'
 
 const nodeTypes = {
   tableNode: TableNode,
@@ -75,15 +76,54 @@ function filterCollapsedSatellites(
   return { nodes: filteredNodes, edges: filteredEdges }
 }
 
+function SnapGuides({ guides }: { guides: GuideLine[] }) {
+  const { x: vx, y: vy, zoom } = useViewport()
+  if (guides.length === 0) return null
+  return (
+    <div className="pointer-events-none absolute inset-0 overflow-hidden z-50">
+      {guides.map((g, i) =>
+        g.axis === 'x' ? (
+          <div key={i} className="absolute top-0 h-full" style={{ left: g.pos * zoom + vx, width: 0, borderLeft: '1px dashed rgba(120,120,120,0.6)' }} />
+        ) : (
+          <div key={i} className="absolute left-0 w-full" style={{ top: g.pos * zoom + vy, height: 0, borderTop: '1px dashed rgba(120,120,120,0.6)' }} />
+        ),
+      )}
+    </div>
+  )
+}
+
 function DiagramPanelInner() {
   const { nodes, edges, setNodes, setEdges, onNodesChange, onEdgesChange, layoutMode, setLayoutMode, viewMode, setViewMode, storedLayout, setStoredLayout } = useDiagramStore()
   const collapsedHubs = useDiagramStore((s) => s.collapsedHubs)
   const parseResult = useEditorStore((s) => s.parseResult)
   const [focusedTableId, setFocusedTableId] = useState<string | null>(null)
   const [layoutMenuOpen, setLayoutMenuOpen] = useState(false)
+  const [guides, setGuides] = useState<GuideLine[]>([])
   const menuRef = useRef<HTMLDivElement>(null)
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const { fitView } = useReactFlow()
+
+  // Wrap onNodesChange to snap positions during drag
+  const handleNodesChange = useCallback((changes: import('@xyflow/react').NodeChange[]) => {
+    const modified = changes.map((change) => {
+      if (change.type === 'position' && change.dragging && change.position) {
+        const allNodes = useDiagramStore.getState().nodes
+        const node = allNodes.find((n) => n.id === change.id)
+        if (node) {
+          const w = node.measured?.width ?? 250
+          const h = node.measured?.height ?? 100
+          const snap = computeSnap(change.id, change.position, { width: w, height: h }, allNodes)
+          setGuides(snap.guides)
+          return { ...change, position: { x: snap.x, y: snap.y } }
+        }
+      }
+      if (change.type === 'position' && !change.dragging) {
+        setGuides([])
+      }
+      return change
+    })
+    onNodesChange(modified)
+  }, [onNodesChange])
 
   // Helper: save positions to storedLayout and persist to git
   const savePositions = useCallback((currentNodes: Node[]) => {
@@ -235,6 +275,7 @@ function DiagramPanelInner() {
 
   // Save positions and reassign edge handles on node drag stop
   const handleNodeDragStop = useCallback((_: React.MouseEvent, _node: Node, draggedNodes: Node[]) => {
+    setGuides([])
     const currentNodes = useDiagramStore.getState().nodes
     const currentEdges = useDiagramStore.getState().edges
     const draggedMap = new Map(draggedNodes.map((n) => [n.id, n.position]))
@@ -245,6 +286,16 @@ function DiagramPanelInner() {
     setEdges(assignEdgeHandles(updatedNodes, currentEdges))
     savePositions(updatedNodes)
   }, [savePositions, setEdges])
+
+  const handleNodeClick = useCallback((_: React.MouseEvent, node: Node) => {
+    const line = (node.data as any)?.line
+    if (line) useEditorStore.getState().scrollToLine?.(line)
+  }, [])
+
+  const handleEdgeClick = useCallback((_: React.MouseEvent, edge: Edge) => {
+    const line = (edge.data as any)?.line
+    if (line) useEditorStore.getState().scrollToLine?.(line)
+  }, [])
 
   const handleNodeDoubleClick = useCallback((_: React.MouseEvent, node: Node) => {
     setFocusedTableId(node.id)
@@ -257,13 +308,16 @@ function DiagramPanelInner() {
         edges={edges}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
-        onNodesChange={onNodesChange}
+        onNodesChange={handleNodesChange}
         onEdgesChange={onEdgesChange}
         onNodeDragStop={handleNodeDragStop}
+        onNodeClick={handleNodeClick}
+        onEdgeClick={handleEdgeClick}
         onNodeDoubleClick={handleNodeDoubleClick}
       >
         <Controls />
         <Background variant={BackgroundVariant.Dots} color="var(--c-dots)" />
+        <SnapGuides guides={guides} />
         <Panel position="top-right" className="flex gap-1">
           <button
             onClick={() => useDiagramStore.getState().setSearchOpen(true)}

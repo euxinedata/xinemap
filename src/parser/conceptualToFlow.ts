@@ -20,7 +20,7 @@ export function parseResultToConceptualFlow(result: ParseResult): { nodes: Node[
       id: table.id,
       type: nodeTypeFromGroup(table.group),
       position: { x: 0, y: 0 },
-      data: { label: table.name },
+      data: { label: table.name, line: table.line },
     })
   }
 
@@ -41,6 +41,7 @@ export function parseResultToConceptualFlow(result: ParseResult): { nodes: Node[
       target: ref.toTable,
       type: 'smoothstep',
       style: { stroke: strokeColor },
+      data: { line: ref.line },
     })
   }
 

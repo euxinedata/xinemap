@@ -68,6 +68,20 @@ export function Toolbar() {
       <div className="ml-6 flex items-center gap-1">
         <button onClick={newProject} className={btnClass}>New</button>
         <button onClick={() => setFileOpen(true)} className={btnClass}>Projects</button>
+        <button
+          onClick={() => {
+            const state = useProjectStore.getState()
+            if (state.currentProjectId) {
+              const project = state.projects.find((p) => p.id === state.currentProjectId)
+              if (project) state.saveCurrentProject(project.name)
+            } else {
+              setFileOpen(true)
+            }
+          }}
+          className={btnClass}
+        >
+          Save
+        </button>
         <button onClick={handleImport} className={btnClass}>Import</button>
         {parseResult && parseResult.dv2Metadata.size > 0 && (
           <button onClick={() => setSourcesOpen(true)} className={btnClass}>Sources</button>

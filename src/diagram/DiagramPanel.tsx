@@ -292,6 +292,38 @@ function DiagramPanelInner() {
     if (line) useEditorStore.getState().scrollToLine?.(line)
   }, [])
 
+  // Alignment actions for multi-selected nodes
+  const selectedNodes = nodes.filter((n) => n.selected)
+  const alignNodes = useCallback((axis: 'left' | 'centerX' | 'right' | 'top' | 'centerY' | 'bottom') => {
+    const sel = useDiagramStore.getState().nodes.filter((n) => n.selected)
+    if (sel.length < 2) return
+    let target: number
+    if (axis === 'left') target = Math.min(...sel.map((n) => n.position.x))
+    else if (axis === 'right') target = Math.max(...sel.map((n) => n.position.x + (n.measured?.width ?? 250)))
+    else if (axis === 'centerX') { const xs = sel.map((n) => n.position.x + (n.measured?.width ?? 250) / 2); target = xs.reduce((a, b) => a + b, 0) / xs.length }
+    else if (axis === 'top') target = Math.min(...sel.map((n) => n.position.y))
+    else if (axis === 'bottom') target = Math.max(...sel.map((n) => n.position.y + (n.measured?.height ?? 100)))
+    else { const ys = sel.map((n) => n.position.y + (n.measured?.height ?? 100) / 2); target = ys.reduce((a, b) => a + b, 0) / ys.length }
+
+    const selIds = new Set(sel.map((n) => n.id))
+    const updated = useDiagramStore.getState().nodes.map((n) => {
+      if (!selIds.has(n.id)) return n
+      const w = n.measured?.width ?? 250
+      const h = n.measured?.height ?? 100
+      let pos = n.position
+      if (axis === 'left') pos = { ...pos, x: target }
+      else if (axis === 'right') pos = { ...pos, x: target - w }
+      else if (axis === 'centerX') pos = { ...pos, x: target - w / 2 }
+      else if (axis === 'top') pos = { ...pos, y: target }
+      else if (axis === 'bottom') pos = { ...pos, y: target - h }
+      else pos = { ...pos, y: target - h / 2 }
+      return { ...n, position: pos }
+    })
+    setNodes(updated)
+    setEdges(assignEdgeHandles(updated, useDiagramStore.getState().edges))
+    savePositions(updated)
+  }, [setNodes, setEdges, savePositions])
+
   const handleEdgeClick = useCallback((_: React.MouseEvent, edge: Edge) => {
     const line = (edge.data as any)?.line
     if (line) useEditorStore.getState().scrollToLine?.(line)
@@ -359,6 +391,20 @@ function DiagramPanelInner() {
             {viewMode === 'relational' ? 'Relational' : 'Conceptual'}
           </button>
         </Panel>
+        {selectedNodes.length >= 2 && (
+          <Panel position="bottom-center" className="flex gap-1 bg-[var(--c-bg-1)] border border-[var(--c-border-s)] rounded px-2 py-1 shadow">
+            {([['left', 'Align Left'], ['centerX', 'Center H'], ['right', 'Align Right'], ['top', 'Align Top'], ['centerY', 'Center V'], ['bottom', 'Align Bottom']] as const).map(([axis, label]) => (
+              <button
+                key={axis}
+                onClick={() => alignNodes(axis)}
+                className="text-[10px] px-2 py-1 rounded text-[var(--c-text-3)] hover:text-[var(--c-text-1)] hover:bg-[var(--c-bg-3)] cursor-pointer"
+                title={label}
+              >
+                {label}
+              </button>
+            ))}
+          </Panel>
+        )}
         <CommandPalette onFocusTable={setFocusedTableId} />
       </ReactFlow>
       {focusedTableId && (

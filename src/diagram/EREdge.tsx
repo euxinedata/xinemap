@@ -62,7 +62,7 @@ export function EREdge({
         d={edgePath}
         fill="none"
         stroke="transparent"
-        strokeWidth={20}
+        strokeWidth={50}
         pointerEvents="stroke"
       />
     </g>

@@ -71,6 +71,8 @@ export function EditorPanel() {
         acceptSuggestionOnCommitCharacter: false,
         suggestOnTriggerCharacters: false,
         wordBasedSuggestions: 'off',
+        accessibilitySupport: 'off',
+        editContext: false,
       }}
     />
   )

@@ -61,6 +61,7 @@ export function FocusEditPanel({ tableId, onClose }: FocusEditPanelProps) {
             acceptSuggestionOnCommitCharacter: false,
             suggestOnTriggerCharacters: false,
             wordBasedSuggestions: 'off',
+            editContext: false,
           }}
         />
       </div>

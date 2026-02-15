@@ -76,7 +76,7 @@ export function Toolbar() {
   return (
     <div className="h-10 bg-[var(--c-bg-1)] border-b border-[var(--c-border)] flex items-center px-4 shrink-0">
       <img src="/xinemap-logo.png" alt="XineMap" className="h-[22px] w-auto" />
-      <span className="text-sm font-semibold text-[var(--c-text-2)] tracking-wide ml-2">XineMap</span>
+      <span className="text-sm font-semibold text-[var(--c-accent)] tracking-wide ml-2" style={{ fontFamily: "'Geist Mono', monospace" }}>XineMap</span>
       <div className="ml-6 flex items-center gap-1">
         <button onClick={newProject} className={btnClass}>
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"><path d="M3 1h5l3 3v8a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1z" /><polyline points="8 1 8 4 11 4" /></svg>
@@ -88,7 +88,7 @@ export function Toolbar() {
         </button>
         <button
           onClick={saveOrPrompt}
-          className={isDirty ? 'flex items-center gap-1.5 text-sm text-amber-400 hover:text-amber-300 px-3 py-1' : btnClass}
+          className={isDirty ? 'flex items-center gap-1.5 text-sm text-[var(--c-accent)] hover:text-[var(--c-accent)] px-3 py-1 brightness-110' : btnClass}
         >
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"><path d="M11 13H3a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h6l3 3v8a1 1 0 0 1-1 1z" /><path d="M9 13V8H5v5" /><path d="M5 1v3h3" /></svg>
           Save{isDirty ? ' *' : ''}

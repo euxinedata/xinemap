@@ -113,19 +113,28 @@ FastAPI app in `dglml_server/` with SPA fallback routing. Endpoints for dbt proj
 
 ## UI Features
 
+### Toolbar
+- All buttons have inline SVG icons + text labels
+- Theme toggle shows sun icon (dark mode) / moon icon (light mode)
+- Import supports `.dbml` and `.sql` files (SQL auto-converted via `@dbml/core` importer, Postgres dialect)
+
 ### Diagram Interactions
-- **Node selection**: click selects (shows outline via `var(--c-text-1)`), click pane deselects. Cmd/Ctrl+Click for multi-select.
-- **Multi-select panel** (bottom-center): 6 alignment icons + 6 distribution icons (space evenly, equal centers, compact — H and V), with instant CSS tooltips
-- **Right-click context menu**: Delete action with styled confirm dialog, removes table + refs + TableGroup entries
-- **Focus mode**: double-click a table to enter, shows neighbors as stubs, expand/collapse, inline editor auto-opens
-- **Browse panel**: entity browser grouped by DV2 type, click to zoom-to-node
+- **Node selection**: click selects (shows outline via `var(--c-text-1)`), click pane deselects
+- **Multi-select**: Cmd/Ctrl+Click. When 1 node selected, a hint shows "⌘+Click to select more" (Mac) or "Ctrl+Click to select more" (Windows)
+- **Multi-select panel** (bottom-center): 6 alignment icons + 6 distribution icons (space evenly, equal centers, compact — H and V), with instant CSS tooltips (not native `title`)
+- **Right-click context menu**: Delete action with styled confirm dialog, removes table block + Ref lines + TableGroup entries from DBML
+- **Focus mode**: double-click a table to enter, shows neighbors as stubs, expand/collapse, inline editor auto-opens on entry
+- **Browse panel**: entity browser grouped by DV2 type (hubs, satellites, links), click to zoom-to-node
 - **Editor sync**: clicking a node scrolls editor to that line (`revealLineInCenter` + `focus()`, no text selection)
 - **Snap guides**: dashed alignment guides appear during drag
+- **Hub satellite collapse**: hub nodes show a satellite count toggle to show/hide connected satellites (`filterCollapsedSatellites` in DiagramPanel, `collapsedHubs` in diagram store)
+- **Table column collapsing**: key columns (PK, FK, DV2 roles) always visible; payload columns hidden behind "+N more" toggle. Layout engine estimates height based on visible key columns only.
 
 ### Save/Dirty Tracking
 - `lastSavedDbml` in editor store tracks dirty state
 - Save button shows amber `Save *` when dirty
 - Ctrl/Cmd+S quick-saves; prompts for name if new project (via styled `PromptDialog`)
+- Last opened project auto-loads on startup (`localStorage 'dglml-last-project'` in `App.tsx`)
 
 ### History
 - Standalone `HistoryDialog` with expandable change summaries (table diffs between commits)

@@ -376,7 +376,6 @@ function DiagramPanelInner() {
     if (sel.length < 3 && (mode === 'spaceH' || mode === 'spaceV' || mode === 'centerH' || mode === 'centerV')) return
     if (sel.length < 2) return
 
-    const selIds = new Set(sel.map((n) => n.id))
     const posMap = new Map<string, { x: number; y: number }>()
 
     if (mode === 'spaceH' || mode === 'compactH') {

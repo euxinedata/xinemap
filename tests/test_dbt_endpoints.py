@@ -4,7 +4,7 @@ from unittest.mock import patch
 import pytest
 from httpx import ASGITransport, AsyncClient
 
-from dglml_server.app import app
+from xinemap_server.app import app
 
 
 @pytest.fixture
@@ -15,7 +15,7 @@ def client():
 
 @pytest.mark.asyncio
 async def test_dbt_project_not_found(client, tmp_path):
-    with patch("dglml_server.app.os.getcwd", return_value=str(tmp_path)):
+    with patch("xinemap_server.app.os.getcwd", return_value=str(tmp_path)):
         resp = await client.get("/api/dbt/project")
     assert resp.status_code == 200
     assert resp.json() == {"found": False}
@@ -25,7 +25,7 @@ async def test_dbt_project_not_found(client, tmp_path):
 async def test_dbt_project_found(client, tmp_path):
     yml = tmp_path / "dbt_project.yml"
     yml.write_text("name: my_project\nmodel-paths: ['models', 'other']\n")
-    with patch("dglml_server.app.os.getcwd", return_value=str(tmp_path)):
+    with patch("xinemap_server.app.os.getcwd", return_value=str(tmp_path)):
         resp = await client.get("/api/dbt/project")
     data = resp.json()
     assert data["found"] is True
@@ -38,7 +38,7 @@ async def test_dbt_project_found(client, tmp_path):
 async def test_dbt_generate_writes_files(client, tmp_path):
     yml = tmp_path / "dbt_project.yml"
     yml.write_text("name: test_proj\nmodel-paths: ['models']\n")
-    with patch("dglml_server.app.os.getcwd", return_value=str(tmp_path)):
+    with patch("xinemap_server.app.os.getcwd", return_value=str(tmp_path)):
         resp = await client.post("/api/dbt/generate", json={
             "files": [
                 {"path": "staging/stg_customer.sql", "content": "SELECT 1"},
@@ -53,7 +53,7 @@ async def test_dbt_generate_writes_files(client, tmp_path):
 
 @pytest.mark.asyncio
 async def test_dbt_generate_no_project(client, tmp_path):
-    with patch("dglml_server.app.os.getcwd", return_value=str(tmp_path)):
+    with patch("xinemap_server.app.os.getcwd", return_value=str(tmp_path)):
         resp = await client.post("/api/dbt/generate", json={"files": []})
     assert resp.status_code == 404
 
@@ -62,7 +62,7 @@ async def test_dbt_generate_no_project(client, tmp_path):
 async def test_dbt_generate_path_traversal(client, tmp_path):
     yml = tmp_path / "dbt_project.yml"
     yml.write_text("name: test_proj\n")
-    with patch("dglml_server.app.os.getcwd", return_value=str(tmp_path)):
+    with patch("xinemap_server.app.os.getcwd", return_value=str(tmp_path)):
         resp = await client.post("/api/dbt/generate", json={
             "files": [
                 {"path": "../../etc/passwd", "content": "bad"},

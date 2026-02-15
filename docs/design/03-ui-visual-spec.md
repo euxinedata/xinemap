@@ -252,7 +252,7 @@ Table-level note tooltip (from header icon):
 
 ### Enhanced layout (left to right)
 
-1. **Brand**: "DGLML" -- unchanged
+1. **Brand**: "XineMap" -- unchanged
 2. **File group**: New | Projects | Export -- unchanged, existing `btnClass`
 3. **Separator**: `border-l border-gray-700 h-4 mx-2`
 4. **View mode segmented control**: replaces current toggle button

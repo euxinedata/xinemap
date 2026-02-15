@@ -15,7 +15,7 @@ export default function App() {
   useEffect(() => {
     const store = useProjectStore.getState()
     store.loadProjectList().then(() => {
-      const lastId = localStorage.getItem('dglml-last-project')
+      const lastId = localStorage.getItem('xinemap-last-project')
       const projects = useProjectStore.getState().projects
       if (projects.length === 0) return
       const target = lastId ? projects.find((p) => p.id === lastId) : undefined

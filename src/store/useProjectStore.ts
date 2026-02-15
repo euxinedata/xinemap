@@ -76,7 +76,7 @@ export const useProjectStore = create<ProjectState>()((set) => ({
 
     const history = await storage.getHistory(id)
     set({ currentProjectId: id, commitHistory: history })
-    localStorage.setItem('dglml-last-project', id)
+    localStorage.setItem('xinemap-last-project', id)
   },
 
   deleteProject: async (id: string) => {

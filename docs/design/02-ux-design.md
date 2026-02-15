@@ -1,4 +1,4 @@
-# UX Design Document: DGLML Data Vault 2.0 Modelling Tool
+# UX Design Document: XineMap Data Vault 2.0 Modelling Tool
 
 ---
 

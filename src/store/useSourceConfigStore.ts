@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import type { SourceConfig, SourceMapping, DbtProjectInfo } from '../types'
 
-const STORAGE_KEY = 'dglml-source-config'
+const STORAGE_KEY = 'xinemap-source-config'
 
 function loadFromStorage(): SourceConfig {
   try {

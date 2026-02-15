@@ -1,5 +1,5 @@
 # Data Vault 2.0 Design Workflow Narrative
-## From Empty Canvas to Production DDL in DGLML
+## From Empty Canvas to Production DDL in XineMap
 
 ---
 
@@ -18,7 +18,7 @@ My first deliverable is a source-to-target inventory: which source fields map to
 
 ### What I need from the tool
 
-**Right now**: I open DGLML, click "New", and I am staring at the default DBML example. Good -- I can start typing. But I have no way to capture project-level metadata. I want to record somewhere:
+**Right now**: I open XineMap, click "New", and I am staring at the default DBML example. Good -- I can start typing. But I have no way to capture project-level metadata. I want to record somewhere:
 
 - Project name: "Acme Analytics DW"
 - Source systems: CRM, ERP, Web Analytics

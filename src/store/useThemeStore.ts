@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 
-const STORAGE_KEY = 'dglml-theme'
+const STORAGE_KEY = 'xinemap-theme'
 
 function applyTheme(isDark: boolean) {
   document.documentElement.classList.toggle('dark', isDark)

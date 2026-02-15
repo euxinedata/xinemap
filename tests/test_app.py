@@ -1,7 +1,7 @@
 import pytest
 from httpx import ASGITransport, AsyncClient
 
-from dglml_server.app import app
+from xinemap_server.app import app
 
 
 @pytest.fixture

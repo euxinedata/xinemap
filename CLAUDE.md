@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**dglml** is a Data Vault 2.0 DBML diagram editor — a full-stack web app with a React/TypeScript frontend and a Python FastAPI backend. Users write DBML in a Monaco editor, and the app parses it into an interactive React Flow diagram with automatic ELK-based layout. The backend serves the built SPA and provides dbt project integration (model detection and generation via DataVault4dbt).
+**XineMap** is a Data Vault 2.0 DBML diagram editor — a full-stack web app with a React/TypeScript frontend and a Python FastAPI backend. Users write DBML in a Monaco editor, and the app parses it into an interactive React Flow diagram with automatic ELK-based layout. The backend serves the built SPA and provides dbt project integration (model detection and generation via DataVault4dbt).
 
 ## Commands
 
@@ -20,7 +20,7 @@ npm run test             # Vitest
 ### Backend (Python)
 ```bash
 pip install -e ".[dev]"  # Install with dev deps (pytest, httpx)
-dbt-dglml serve          # Start FastAPI server at http://127.0.0.1:8000
+xinemap serve            # Start FastAPI server at http://127.0.0.1:8000
 ```
 
 ### Testing
@@ -58,7 +58,7 @@ Zustand stores (no Redux):
 - **DV2 colors**: defined in `src/diagram/dv2Colors.ts` — each entity type has bg, border, handle colors
 
 ### Backend
-FastAPI app in `dglml_server/` with SPA fallback routing. Endpoints for dbt project detection and DataVault4dbt model generation. Entry point: `dbt-dglml serve`.
+FastAPI app in `xinemap_server/` with SPA fallback routing. Endpoints for dbt project detection and DataVault4dbt model generation. Entry point: `xinemap serve`.
 
 ## Key Files
 
@@ -134,7 +134,7 @@ FastAPI app in `dglml_server/` with SPA fallback routing. Endpoints for dbt proj
 - `lastSavedDbml` in editor store tracks dirty state
 - Save button shows amber `Save *` when dirty
 - Ctrl/Cmd+S quick-saves; prompts for name if new project (via styled `PromptDialog`)
-- Last opened project auto-loads on startup (`localStorage 'dglml-last-project'` in `App.tsx`)
+- Last opened project auto-loads on startup (`localStorage 'xinemap-last-project'` in `App.tsx`)
 
 ### History
 - Standalone `HistoryDialog` with expandable change summaries (table diffs between commits)

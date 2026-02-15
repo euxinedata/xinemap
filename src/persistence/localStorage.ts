@@ -1,6 +1,6 @@
 import type { SavedProject } from '../types'
 
-const STORAGE_KEY = 'dglml-projects'
+const STORAGE_KEY = 'xinemap-projects'
 
 function readAll(): SavedProject[] {
   try {

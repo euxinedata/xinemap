@@ -7,7 +7,7 @@ import uvicorn
 
 def main():
     parser = argparse.ArgumentParser(
-        prog="dbt-dglml",
+        prog="xinemap",
         description="Data Vault 2.0 DBML diagram editor",
     )
     sub = parser.add_subparsers(dest="command")
@@ -24,12 +24,12 @@ def main():
         return
 
     url = f"http://{args.host}:{args.port}"
-    print(f"Serving dbt-dglml at {url}")
+    print(f"Serving XineMap at {url}")
 
     if not args.no_browser:
         threading.Timer(1.0, webbrowser.open, args=(url,)).start()
 
-    uvicorn.run("dglml_server.app:app", host=args.host, port=args.port)
+    uvicorn.run("xinemap_server.app:app", host=args.host, port=args.port)
 
 
 if __name__ == "__main__":

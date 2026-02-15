@@ -5,12 +5,12 @@ import git from 'isomorphic-git'
 import LightningFS from '@isomorphic-git/lightning-fs'
 import type { SavedProject, CommitInfo, SourceConfig, StoredLayout } from '../types'
 
-const lfs = new LightningFS('dglml')
+const lfs = new LightningFS('xinemap')
 const fs = lfs
 const pfs = lfs.promises
 
 const PROJECTS_DIR = '/projects'
-const AUTHOR = { name: 'DGLML', email: 'dglml@local' }
+const AUTHOR = { name: 'XineMap', email: 'xinemap@local' }
 
 async function ensureDir(path: string): Promise<void> {
   try {
@@ -238,8 +238,8 @@ export async function saveLayout(id: string, layout: StoredLayout): Promise<void
 
 // --- Migration from localStorage ---
 
-const MIGRATION_KEY = 'dglml-projects'
-const MIGRATION_DONE_KEY = 'dglml-migrated'
+const MIGRATION_KEY = 'xinemap-projects'
+const MIGRATION_DONE_KEY = 'xinemap-migrated'
 
 export async function migrateFromLocalStorage(): Promise<boolean> {
   if (localStorage.getItem(MIGRATION_DONE_KEY)) return false

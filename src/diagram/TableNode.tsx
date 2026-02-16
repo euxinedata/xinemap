@@ -13,7 +13,7 @@ function isKeyColumn(col: { isPrimaryKey: boolean; isForeignKey: boolean; dv2Rol
 function TableNodeComponent({ data, id, selected }: NodeProps) {
   const { table, dv2EntityType, satelliteCount, isCollapsed, onCollapse } = data as TableNodeData
   const dv2Colors = dv2EntityType ? DV2_COLORS[dv2EntityType] : undefined
-  const headerColor = dv2Colors?.bg ?? table.headerColor ?? '#374151'
+  const headerColor = dv2Colors?.bg ?? table.headerColor ?? table.groupColor ?? '#374151'
   const schemaPrefix = table.schema && table.schema !== 'public' ? `${table.schema}.` : ''
   const borderColor = dv2Colors?.border
 
@@ -93,6 +93,12 @@ function TableNodeComponent({ data, id, selected }: NodeProps) {
               {col.dv2Role === 'dk' && (
                 <span className="text-[9px] px-1 rounded bg-cyan-700 text-cyan-200 font-bold">DK</span>
               )}
+              {col.isIncrement && (
+                <span className="text-[9px] px-1 rounded bg-gray-600 text-gray-200 font-bold">AI</span>
+              )}
+              {col.checks && col.checks.length > 0 && (
+                <span className="text-[9px] px-1 rounded bg-amber-700 text-amber-200 font-bold">CK</span>
+              )}
             </span>
             <span className="text-[var(--c-text-4)]">{col.type}</span>
             <Handle type="target" position={Position.Right} id={`${id}.${col.name}-R-tgt`} className="!w-2 !h-2" style={{ background: 'var(--c-edge)' }} />
@@ -108,6 +114,28 @@ function TableNodeComponent({ data, id, selected }: NodeProps) {
           </div>
         )}
       </div>
+      {table.indexes && table.indexes.length > 0 && (
+        <div className="px-3 py-1.5 text-[10px] text-[var(--c-text-4)] border-t border-[var(--c-divide)] space-y-0.5">
+          {table.indexes.map((idx, i) => (
+            <div key={i} className="flex items-center gap-1">
+              <span className="text-[9px] px-1 rounded bg-gray-600 text-gray-200 font-bold">
+                {idx.unique ? 'UQ' : 'IDX'}
+              </span>
+              <span>{idx.name || idx.columns.map(c => c.value).join(', ')}</span>
+            </div>
+          ))}
+        </div>
+      )}
+      {table.checks && table.checks.length > 0 && (
+        <div className="px-3 py-1.5 text-[10px] text-[var(--c-text-4)] border-t border-[var(--c-divide)] space-y-0.5">
+          {table.checks.map((ck, i) => (
+            <div key={i} className="flex items-center gap-1">
+              <span className="text-[9px] px-1 rounded bg-amber-700 text-amber-200 font-bold">CK</span>
+              <span>{ck.name || ck.expression}</span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

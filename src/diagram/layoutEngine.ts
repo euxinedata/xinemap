@@ -21,9 +21,13 @@ function getNodeSize(node: Node): { width: number; height: number } {
   if (preset) return preset
   const width = 250
   const cols = (node.data as any)?.table?.columns ?? []
+  const table = (node.data as any)?.table
   const keyCount = cols.filter((c: any) => c.isPrimaryKey || c.isForeignKey || !!c.dv2Role).length
   const hasPayload = cols.length > keyCount
-  const visibleRows = keyCount + (hasPayload ? 1 : 0)
+  const indexCount = table?.indexes?.length ?? 0
+  const checkCount = table?.checks?.length ?? 0
+  const extraRows = (indexCount > 0 ? indexCount + 0.5 : 0) + (checkCount > 0 ? checkCount + 0.5 : 0)
+  const visibleRows = keyCount + (hasPayload ? 1 : 0) + extraRows
   const height = 40 + Math.max(visibleRows, 1) * 28
   return { width, height }
 }

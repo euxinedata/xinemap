@@ -126,9 +126,10 @@ export function exportSnowflakeDDL(
         ? `${toTable.schema}.${toTable.name}`
         : toTable.name
       const fkName = `fk_${table.name}_${ref.fromColumns[0]}`
-      colLines.push(
-        `    CONSTRAINT ${fkName} FOREIGN KEY (${ref.fromColumns.join(', ')}) REFERENCES ${toQualName} (${ref.toColumns.join(', ')})`,
-      )
+      let fkLine = `    CONSTRAINT ${fkName} FOREIGN KEY (${ref.fromColumns.join(', ')}) REFERENCES ${toQualName} (${ref.toColumns.join(', ')})`
+      if (ref.onDelete) fkLine += ` ON DELETE ${ref.onDelete.toUpperCase()}`
+      if (ref.onUpdate) fkLine += ` ON UPDATE ${ref.onUpdate.toUpperCase()}`
+      colLines.push(fkLine)
     }
 
     statements.push(`CREATE TABLE IF NOT EXISTS ${qualName} (\n${colLines.join(',\n')}\n);`)

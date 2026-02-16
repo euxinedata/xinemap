@@ -1,5 +1,24 @@
 export type DV2ColumnRole = 'hk' | 'bk' | 'mak' | 'dk'
 
+export interface CheckInfo {
+  name?: string
+  expression: string
+}
+
+export interface IndexColumnInfo {
+  type: string     // 'column' or 'expression'
+  value: string
+}
+
+export interface IndexInfo {
+  name?: string
+  columns: IndexColumnInfo[]
+  type?: string    // e.g. 'btree', 'hash'
+  unique: boolean
+  pk: boolean
+  note?: string
+}
+
 export interface ColumnInfo {
   name: string
   type: string
@@ -10,6 +29,8 @@ export interface ColumnInfo {
   defaultValue?: string
   note?: string
   dv2Role?: DV2ColumnRole
+  isIncrement?: boolean
+  checks?: CheckInfo[]
   isInjected?: boolean
 }
 
@@ -21,6 +42,10 @@ export interface TableInfo {
   headerColor?: string
   note?: string
   group?: string
+  groupNote?: string
+  groupColor?: string
+  indexes?: IndexInfo[]
+  checks?: CheckInfo[]
   line?: number
 }
 
@@ -32,6 +57,8 @@ export interface RefInfo {
   toColumns: string[]
   type: '1-1' | '1-n' | 'n-1' | 'n-n'
   color?: string
+  onDelete?: string
+  onUpdate?: string
   line?: number
 }
 

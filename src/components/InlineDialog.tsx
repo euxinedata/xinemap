@@ -39,13 +39,14 @@ export function ConfirmDialog({ message, onConfirm, onCancel, confirmLabel = 'Co
 interface PromptDialogProps {
   message: string
   placeholder?: string
+  defaultValue?: string
   onSubmit: (value: string) => void
   onCancel: () => void
   submitLabel?: string
 }
 
-export function PromptDialog({ message, placeholder, onSubmit, onCancel, submitLabel = 'Save' }: PromptDialogProps) {
-  const [value, setValue] = useState('')
+export function PromptDialog({ message, placeholder, defaultValue = '', onSubmit, onCancel, submitLabel = 'Save' }: PromptDialogProps) {
+  const [value, setValue] = useState(defaultValue)
   const inputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {

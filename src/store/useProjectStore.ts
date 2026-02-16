@@ -12,6 +12,7 @@ interface ProjectState {
   loadProjectList: () => Promise<void>
   saveCurrentProject: (name: string) => Promise<void>
   openProject: (id: string) => Promise<void>
+  renameProject: (id: string, newName: string) => Promise<void>
   deleteProject: (id: string) => Promise<void>
   newProject: () => void
   loadHistory: () => Promise<void>
@@ -77,6 +78,12 @@ export const useProjectStore = create<ProjectState>()((set) => ({
     const history = await storage.getHistory(id)
     set({ currentProjectId: id, commitHistory: history })
     localStorage.setItem('xinemap-last-project', id)
+  },
+
+  renameProject: async (id: string, newName: string) => {
+    await storage.renameProject(id, newName)
+    const projects = await storage.listProjects()
+    set({ projects })
   },
 
   deleteProject: async (id: string) => {

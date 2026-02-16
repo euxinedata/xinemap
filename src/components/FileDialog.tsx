@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useProjectStore } from '../store/useProjectStore'
-import { ConfirmDialog } from './InlineDialog'
+import { ConfirmDialog, PromptDialog } from './InlineDialog'
 
 interface FileDialogProps {
   isOpen: boolean
@@ -12,10 +12,12 @@ export function FileDialog({ isOpen, onClose }: FileDialogProps) {
     projects,
     loadProjectList,
     openProject,
+    renameProject,
     deleteProject,
   } = useProjectStore()
 
   const [deleteId, setDeleteId] = useState<string | null>(null)
+  const [renameId, setRenameId] = useState<string | null>(null)
 
   useEffect(() => {
     if (isOpen) {
@@ -101,6 +103,12 @@ export function FileDialog({ isOpen, onClose }: FileDialogProps) {
                           Open
                         </button>
                         <button
+                          onClick={() => setRenameId(p.id)}
+                          className="text-[var(--c-text-3)] hover:text-[var(--c-text-1)]"
+                        >
+                          Rename
+                        </button>
+                        <button
                           onClick={() => setDeleteId(p.id)}
                           className="text-red-400 hover:text-red-300"
                         >
@@ -114,6 +122,18 @@ export function FileDialog({ isOpen, onClose }: FileDialogProps) {
             )}
           </div>
       </div>
+      {renameId && (
+        <PromptDialog
+          message="Rename project"
+          defaultValue={projects.find((p) => p.id === renameId)?.name ?? ''}
+          submitLabel="Rename"
+          onSubmit={async (newName: string) => {
+            await renameProject(renameId, newName)
+            setRenameId(null)
+          }}
+          onCancel={() => setRenameId(null)}
+        />
+      )}
       {deleteId && (
         <ConfirmDialog
           message={`Delete project "${deleteProject_?.name}"?`}

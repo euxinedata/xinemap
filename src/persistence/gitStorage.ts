@@ -103,6 +103,19 @@ export async function saveProject(project: SavedProject): Promise<string> {
   return oid
 }
 
+export async function renameProject(id: string, newName: string): Promise<void> {
+  const dir = projectDir(id)
+  await pfs.writeFile(`${dir}/project.json`, JSON.stringify({ name: newName }), 'utf8')
+  await git.add({ fs, dir, filepath: 'project.json' })
+  const now = new Date()
+  await git.commit({
+    fs,
+    dir,
+    message: `Rename to ${newName}`,
+    author: { ...AUTHOR, timestamp: Math.floor(now.getTime() / 1000) },
+  })
+}
+
 export async function deleteProject(id: string): Promise<void> {
   const dir = projectDir(id)
   try {

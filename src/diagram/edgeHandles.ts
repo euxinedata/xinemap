@@ -24,10 +24,19 @@ export function assignEdgeHandles(nodes: Node[], edges: Edge[]): Edge[] {
     // Conceptual view edges — pick cardinal handle based on angle
     if (!fromCol && !toCol && e.type !== 'erEdge') {
       const dir = cardinalDirection(tp.x - sp.x, tp.y - sp.y)
+      const pairIndex = (e.data as any)?.pairIndex ?? 0
+      // For duplicate edges (same-as links), use a perpendicular direction
+      let sourceDir = dir
+      let targetDir = opposite[dir]
+      if (pairIndex > 0) {
+        const perpDirs = dir === 'left' || dir === 'right' ? ['top', 'bottom'] : ['left', 'right']
+        sourceDir = perpDirs[0]
+        targetDir = perpDirs[1]
+      }
       return {
         ...e,
-        sourceHandle: `${dir}-source`,
-        targetHandle: `${opposite[dir]}-target`,
+        sourceHandle: `${sourceDir}-source`,
+        targetHandle: `${targetDir}-target`,
       }
     }
 

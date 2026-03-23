@@ -75,18 +75,8 @@ export function Toolbar() {
 
   return (
     <div className="h-10 bg-[var(--c-bg-1)] border-b border-[var(--c-border)] flex items-center px-4 shrink-0">
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 80" fill="none" className="h-[32px] w-auto">
-        <g stroke="currentColor" strokeWidth="20" fill="none" transform="matrix(0.11560548,0,0,0.11560548,-4.6450238,-13.850197)">
-          <path d="M 146.7,249.2 410.1,134.1 714.6,241.3 981.1,137.2 1058.4,654.6 714.6,788.7 399.1,668.8 64.7,799.7 Z" />
-          <path d="m 714.9,784.8 -1.5,-547.5" />
-          <path d="m 399.6,669.9 9.3,-537.9" />
-        </g>
-        <text x="53.28" y="7.38" transform="skewY(18)" fontFamily="Arial" fontSize="20.8" letterSpacing="0.16" fill="currentColor" stroke="currentColor" strokeWidth="1.3">N</text>
-        <text x="53.24" y="46.36" transform="skewY(18)" fontFamily="Arial" fontSize="20.25" letterSpacing="0.16" fill="currentColor" stroke="currentColor" strokeWidth="1.27">S</text>
-        <g transform="matrix(0.1000048,0.02048157,0,0.0630358,4.4171456,-1.1954626)" stroke="currentColor" fill="none" strokeWidth="25.19">
-          <path d="m 562.29,324.11 45.77,126.37 -47.87,126.75 -43.25,-127.49 z" />
-          <path d="m 551.35,360.18 1.46,166.4 -35.27,-78.48 z" fill="currentColor" />
-        </g>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="h-[20px] w-auto">
+        <path d="M9 6.75V15m6-6v8.25m.503 3.498 4.875-2.437c.381-.19.622-.58.622-1.006V4.82c0-.836-.88-1.38-1.628-1.006l-3.869 1.934c-.317.159-.69.159-1.006 0L9.503 3.252a1.125 1.125 0 0 0-1.006 0L3.622 5.689C3.24 5.88 3 6.27 3 6.695V19.18c0 .836.88 1.38 1.628 1.006l3.869-1.934c.317-.159.69-.159 1.006 0l4.994 2.497c.317.158.69.158 1.006 0Z"/>
       </svg>
       <span className="text-sm font-semibold text-[var(--c-accent)] tracking-wide ml-2" style={{ fontFamily: "'Geist Mono', monospace" }}>XineMap</span>
       <div className="ml-6 flex items-center gap-1">

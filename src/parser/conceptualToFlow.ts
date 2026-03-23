@@ -33,15 +33,22 @@ export function parseResultToConceptualFlow(result: ParseResult): { nodes: Node[
     })
   }
 
+  // Track how many edges exist between each source/target pair
+  // so duplicate pairs (e.g. same-as links) get different handle slots
+  const pairCount = new Map<string, number>()
+
   for (const ref of result.refs) {
     const strokeColor = dv2EdgeColor(result.dv2Metadata.get(ref.fromTable)?.entityType, result.dv2Metadata.get(ref.toTable)?.entityType) ?? '#9ca3af'
+    const pairKey = `${ref.fromTable}|${ref.toTable}`
+    const idx = pairCount.get(pairKey) ?? 0
+    pairCount.set(pairKey, idx + 1)
     edges.push({
       id: ref.id,
       source: ref.fromTable,
       target: ref.toTable,
       type: 'smoothstep',
       style: { stroke: strokeColor },
-      data: { line: ref.line },
+      data: { line: ref.line, pairIndex: idx },
     })
   }
 

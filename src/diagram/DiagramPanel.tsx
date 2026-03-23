@@ -131,7 +131,13 @@ function DiagramPanelInner() {
       return change
     })
     onNodesChange(modified)
-  }, [onNodesChange])
+    // Reassign edge handles live during drag so connections follow node movement
+    const isDragging = changes.some((c) => c.type === 'position' && c.dragging)
+    if (isDragging) {
+      const { nodes: currentNodes, edges: currentEdges } = useDiagramStore.getState()
+      setEdges(assignEdgeHandles(currentNodes, currentEdges))
+    }
+  }, [onNodesChange, setEdges])
 
   // Helper: save positions to storedLayout and persist to git
   const savePositions = useCallback((currentNodes: Node[]) => {

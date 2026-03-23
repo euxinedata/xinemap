@@ -2,8 +2,8 @@ import type { Node, Edge } from '@xyflow/react'
 
 const opposite: Record<string, string> = { top: 'bottom', bottom: 'top', left: 'right', right: 'left' }
 
-// Pixel tolerance for considering handles aligned
-const ALIGN_THRESHOLD = 20
+// Match the snap threshold (5px) so edges only go straight when nodes are snapped into alignment
+const ALIGN_THRESHOLD = 5
 
 function cardinalDirection(dx: number, dy: number): string {
   if (Math.abs(dx) >= Math.abs(dy)) return dx >= 0 ? 'right' : 'left'

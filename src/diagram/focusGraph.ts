@@ -104,7 +104,7 @@ export function buildFocusGraph(
         id: ref.id,
         source: ref.fromTable,
         target: ref.toTable,
-        type: 'smoothstep',
+        type: 'erEdge',
         style,
         data: {
           ...(fromFull ? { fromCol: ref.fromColumns[0] } : {}),

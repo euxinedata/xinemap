@@ -125,7 +125,17 @@ function DiagramPanelInner() {
           return { ...change, position: { x: snap.x, y: snap.y } }
         }
       }
-      if (change.type === 'position' && !change.dragging) {
+      if (change.type === 'position' && !change.dragging && change.position) {
+        // Snap the final drop position so the node doesn't drift from the last guide
+        const allNodes = useDiagramStore.getState().nodes
+        const node = allNodes.find((n) => n.id === change.id)
+        if (node) {
+          const w = node.measured?.width ?? 250
+          const h = node.measured?.height ?? 100
+          const snap = computeSnap(change.id, change.position, { width: w, height: h }, allNodes)
+          setGuides([])
+          return { ...change, position: { x: snap.x, y: snap.y } }
+        }
         setGuides([])
       }
       return change

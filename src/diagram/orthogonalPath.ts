@@ -2,6 +2,7 @@ import { Position } from '@xyflow/react'
 
 const DEFAULT_RADIUS = 5
 const MIN_EXTENSION = 20 // minimum distance to extend from a handle before bending
+const STRAIGHT_TOLERANCE = 2 // treat coordinates within this range as aligned (avoids kinks from sub-pixel handle differences)
 
 type Point = [number, number]
 
@@ -45,12 +46,12 @@ function computeWaypoints(
     if (srcH) {
       // Horizontal opposing
       const midX = (osx + otx) / 2
-      if (osy === oty) return [[osx, osy], [otx, oty]]
+      if (Math.abs(osy - oty) < STRAIGHT_TOLERANCE) return [[osx, osy], [otx, osy]]
       return [[osx, osy], [midX, osy], [midX, oty], [otx, oty]]
     } else {
       // Vertical opposing
       const midY = (osy + oty) / 2
-      if (osx === otx) return [[osx, osy], [otx, oty]]
+      if (Math.abs(osx - otx) < STRAIGHT_TOLERANCE) return [[osx, osy], [osx, oty]]
       return [[osx, osy], [osx, midY], [otx, midY], [otx, oty]]
     }
   }

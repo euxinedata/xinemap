@@ -29,7 +29,7 @@ export function assignEdgeHandles(nodes: Node[], edges: Edge[]): Edge[] {
     if (!sn || !tn) return e
 
     // Conceptual view edges — pick cardinal handle based on angle
-    if (!fromCol && !toCol && e.type !== 'erEdge') {
+    if (!fromCol && !toCol) {
       const sc = getNodeCenter(sn)
       const tc = getNodeCenter(tn)
       const dx = tc.cx - sc.cx

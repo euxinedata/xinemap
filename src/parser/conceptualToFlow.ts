@@ -51,7 +51,7 @@ export function parseResultToConceptualFlow(result: ParseResult): { nodes: Node[
       id: ref.id,
       source: ref.fromTable,
       target: ref.toTable,
-      type: 'smoothstep',
+      type: 'erEdge',
       style: { stroke: strokeColor },
       data: { line: ref.line, pairIndex: idx, pairTotal: total },
     })

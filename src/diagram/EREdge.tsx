@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { BaseEdge, getSmoothStepPath, Position, type EdgeProps } from '@xyflow/react'
+import { BaseEdge, Position, type EdgeProps } from '@xyflow/react'
+import { orthogonalPath } from './orthogonalPath'
 
 const STROKE_WIDTH = 1
 const HOVER_STROKE_WIDTH = 2.5
@@ -36,10 +37,14 @@ export function EREdge({
   data, style,
 }: EdgeProps) {
   const [hovered, setHovered] = useState(false)
-  const [edgePath] = getSmoothStepPath({
+  const pairIndex = (data as any)?.pairIndex ?? 0
+  const pairTotal = (data as any)?.pairTotal ?? 1
+  const offset = pairTotal > 1 ? (pairIndex === 0 ? -5 : 5) : 0
+  const edgePath = orthogonalPath(
     sourceX, sourceY, sourcePosition,
     targetX, targetY, targetPosition,
-  })
+    offset,
+  )
 
   const srcCard = (data as any)?.sourceCardinality ?? '1'
   const tgtCard = (data as any)?.targetCardinality ?? '1'

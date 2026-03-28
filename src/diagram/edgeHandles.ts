@@ -2,9 +2,6 @@ import type { Node, Edge } from '@xyflow/react'
 
 const opposite: Record<string, string> = { top: 'bottom', bottom: 'top', left: 'right', right: 'left' }
 
-// Match the snap threshold (5px) so edges only go straight when nodes are snapped into alignment
-const ALIGN_THRESHOLD = 5
-
 function cardinalDirection(dx: number, dy: number): string {
   if (Math.abs(dx) >= Math.abs(dy)) return dx >= 0 ? 'right' : 'left'
   return dy >= 0 ? 'bottom' : 'top'
@@ -20,7 +17,7 @@ function getNodeCenter(n: Node): { cx: number; cy: number } {
  * Assign source/target handles to edges based on relative node positions.
  * For TableNodes with fromCol/toCol, uses column-specific L/R handle IDs.
  * For conceptual nodes, picks the best cardinal handle (top/right/bottom/left).
- * When handles are nearly aligned, uses straight edge type to avoid kinks.
+ * All edges use erEdge type with orthogonal routing.
  */
 export function assignEdgeHandles(nodes: Node[], edges: Edge[]): Edge[] {
   const nodeMap = new Map(nodes.map((n) => [n.id, n]))
@@ -32,7 +29,7 @@ export function assignEdgeHandles(nodes: Node[], edges: Edge[]): Edge[] {
     if (!sn || !tn) return e
 
     // Conceptual view edges — pick cardinal handle based on angle
-    if (!fromCol && !toCol && e.type !== 'erEdge') {
+    if (!fromCol && !toCol) {
       const sc = getNodeCenter(sn)
       const tc = getNodeCenter(tn)
       const dx = tc.cx - sc.cx
@@ -41,18 +38,11 @@ export function assignEdgeHandles(nodes: Node[], edges: Edge[]): Edge[] {
       const pairIndex = (e.data as any)?.pairIndex ?? 0
       const pairTotal = (e.data as any)?.pairTotal ?? 1
 
-      // Use straight edge when handles are well-aligned
-      const isVertical = dir === 'top' || dir === 'bottom'
-      const aligned = isVertical
-        ? Math.abs(dx) < ALIGN_THRESHOLD
-        : Math.abs(dy) < ALIGN_THRESHOLD
-      const edgeType = aligned ? 'straight' : 'smoothstep'
-
       // For paired edges (same-as links), use offset handles like a double bond
       const suffix = pairTotal > 1 ? (pairIndex === 0 ? '-a' : '-b') : ''
       return {
         ...e,
-        type: edgeType,
+        type: 'erEdge',
         sourceHandle: `${dir}-source${suffix}`,
         targetHandle: `${opposite[dir]}-target${suffix}`,
       }

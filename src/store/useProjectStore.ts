@@ -57,8 +57,11 @@ export const useProjectStore = create<ProjectState>()((set) => ({
   openProject: async (id: string) => {
     const project = await storage.getProject(id)
     if (!project) return
-    useEditorStore.getState().setDbml(project.dbml)
-    useEditorStore.getState().setLastSavedDbml(project.dbml)
+
+    // Clear parseResult FIRST so the diagram effect early-returns
+    // while we load layout/config. This prevents stale data from
+    // triggering auto-layout that overwrites the stored positions.
+    useEditorStore.getState().setParseResult(null)
 
     const sourceConfig = await storage.getSourceConfig(id)
     if (sourceConfig) {
@@ -78,6 +81,11 @@ export const useProjectStore = create<ProjectState>()((set) => ({
     const history = await storage.getHistory(id)
     set({ currentProjectId: id, commitHistory: history })
     localStorage.setItem('xinemap-last-project', id)
+
+    // Set DBML last — the debounced parse will fire the diagram effect
+    // AFTER storedLayout is already in place
+    useEditorStore.getState().setDbml(project.dbml)
+    useEditorStore.getState().setLastSavedDbml(project.dbml)
   },
 
   renameProject: async (id: string, newName: string) => {

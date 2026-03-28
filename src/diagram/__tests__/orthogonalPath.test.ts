@@ -14,6 +14,12 @@ describe('orthogonalPath', () => {
       expect(d).toBe('M 0 100 L 200 100')
     })
 
+    it('Right-to-Left near-aligned Y produces straight line (no kink)', () => {
+      // Handles differ by 1px due to different node heights — should still be straight
+      const d = orthogonalPath(0, 100, Position.Right, 200, 101, Position.Left)
+      expect(d).toBe('M 0 100 L 200 100')
+    })
+
     it('Right-to-Left different Y produces H-V-H route', () => {
       const d = orthogonalPath(0, 50, Position.Right, 200, 150, Position.Left)
       expect(d).toContain('M')

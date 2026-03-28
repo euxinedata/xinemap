@@ -11,13 +11,7 @@ describe('orthogonalPath', () => {
   describe('opposing faces', () => {
     it('Right-to-Left same Y produces straight horizontal line', () => {
       const d = orthogonalPath(0, 100, Position.Right, 200, 100, Position.Left)
-      // Should be a simple M...L or M...H with no vertical component
-      expect(d).toContain('M')
-      // Start and end Y should both be 100
-      const cmds = pathCommands(d)
-      expect(cmds.length).toBeGreaterThanOrEqual(1)
-      // No vertical movement — path should not change Y
-      expect(d).not.toMatch(/[Vv]/)
+      expect(d).toBe('M 0 100 L 200 100')
     })
 
     it('Right-to-Left different Y produces H-V-H route', () => {
@@ -30,7 +24,7 @@ describe('orthogonalPath', () => {
 
     it('Top-to-Bottom same X produces straight vertical line', () => {
       const d = orthogonalPath(100, 0, Position.Top, 100, -200, Position.Bottom)
-      expect(d).not.toMatch(/[Hh]/)
+      expect(d).toBe('M 100 0 L 100 -200')
     })
 
     it('Bottom-to-Top different X produces V-H-V route', () => {

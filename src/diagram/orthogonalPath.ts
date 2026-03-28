@@ -12,6 +12,7 @@ function dirVec(pos: Position): Point {
     case Position.Left: return [-1, 0]
     case Position.Bottom: return [0, 1]
     case Position.Top: return [0, -1]
+    default: { const _: never = pos; throw new Error(`Unknown position: ${_}`) }
   }
 }
 

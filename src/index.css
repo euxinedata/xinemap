@@ -83,7 +83,34 @@ body {
   border-bottom: none !important;
 }
 
-/* Edge hover highlight (covers smoothstep and other non-custom edges) */
+/* Editor panel toggle handle — overlays the left edge of the diagram pane */
+.editor-toggle-handle {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 100;
+  width: 16px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--c-bg-2);
+  border: 1px solid var(--c-border);
+  border-left: none;
+  border-radius: 0 4px 4px 0;
+  color: var(--c-text-4);
+  cursor: pointer;
+  padding: 0;
+  opacity: 0.6;
+  transition: opacity 0.15s, color 0.15s;
+}
+.editor-toggle-handle:hover {
+  opacity: 1;
+  color: var(--c-text-1);
+}
+
+/* Edge hover highlight */
 .react-flow__edge:hover path {
   stroke-width: 2.5;
 }

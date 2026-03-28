@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Allotment } from 'allotment'
 import 'allotment/dist/style.css'
 import { Toolbar } from './components/Toolbar'
@@ -10,6 +10,8 @@ import { useProjectStore } from './store/useProjectStore'
 
 export default function App() {
   useParseEffect()
+  const [editorVisible, setEditorVisible] = useState(true)
+  const toggleEditor = useCallback(() => setEditorVisible((v) => !v), [])
 
   // Auto-load the last opened project on startup
   useEffect(() => {
@@ -27,11 +29,24 @@ export default function App() {
       <Toolbar />
       <div className="flex-1 min-h-0">
         <Allotment defaultSizes={[40, 60]}>
-          <Allotment.Pane minSize={200}>
+          <Allotment.Pane minSize={200} visible={editorVisible}>
             <EditorPanel />
           </Allotment.Pane>
           <Allotment.Pane minSize={300}>
-            <DiagramPanel />
+            <div className="relative w-full h-full">
+              <DiagramPanel />
+              <button
+                onClick={toggleEditor}
+                className="editor-toggle-handle"
+                title={editorVisible ? 'Hide editor' : 'Show editor'}
+              >
+                <svg width="10" height="16" viewBox="0 0 10 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  {editorVisible
+                    ? <polyline points="7,2 2,8 7,14" />
+                    : <polyline points="3,2 8,8 3,14" />}
+                </svg>
+              </button>
+            </div>
           </Allotment.Pane>
         </Allotment>
       </div>

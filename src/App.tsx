@@ -5,13 +5,17 @@ import { Toolbar } from './components/Toolbar'
 import { StatusBar } from './components/StatusBar'
 import { EditorPanel } from './editor/EditorPanel'
 import { DiagramPanel } from './diagram/DiagramPanel'
+import { TabularPanel } from './tabular/TabularPanel'
+import { ViewModeCycleButton } from './components/ViewModeCycleButton'
 import { useParseEffect } from './hooks/useParseEffect'
 import { useProjectStore } from './store/useProjectStore'
+import { useDiagramStore } from './store/useDiagramStore'
 
 export default function App() {
   useParseEffect()
   const [editorVisible, setEditorVisible] = useState(true)
   const toggleEditor = useCallback(() => setEditorVisible((v) => !v), [])
+  const viewMode = useDiagramStore((s) => s.viewMode)
 
   // Auto-load the last opened project on startup
   useEffect(() => {
@@ -34,7 +38,12 @@ export default function App() {
           </Allotment.Pane>
           <Allotment.Pane minSize={300}>
             <div className="relative w-full h-full">
-              <DiagramPanel />
+              {viewMode === 'tabular' ? <TabularPanel /> : <DiagramPanel />}
+              {viewMode === 'tabular' && (
+                <div className="absolute top-2 right-2 z-20">
+                  <ViewModeCycleButton />
+                </div>
+              )}
               <button
                 onClick={toggleEditor}
                 className="editor-toggle-handle"

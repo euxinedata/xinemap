@@ -8,7 +8,8 @@ import { parseResultToFlow } from '../parser/dbmlToFlow'
 import { parseResultToConceptualFlow } from '../parser/conceptualToFlow'
 import { layoutNodes } from './layoutEngine'
 import * as storage from '../persistence/gitStorage'
-import type { DV2Metadata, StoredLayout } from '../types'
+import type { DV2Metadata, StoredLayout, ParseResult } from '../types'
+import { filterTablesByGroup } from '../tabular/filterTablesByGroup'
 import { assignEdgeHandles } from './edgeHandles'
 import { DV2_COLORS } from './dv2Colors'
 import { TableNode } from './TableNode'
@@ -95,8 +96,10 @@ function SnapGuides({ guides }: { guides: GuideLine[] }) {
 }
 
 function DiagramPanelInner() {
-  const { nodes, edges, setNodes, setEdges, onNodesChange, onEdgesChange, layoutMode, setLayoutMode, viewMode, setViewMode, storedLayout, setStoredLayout } = useDiagramStore()
+  const { nodes, edges, setNodes, setEdges, onNodesChange, onEdgesChange, layoutMode, setLayoutMode, viewMode, storedLayout, setStoredLayout, groupFilter } = useDiagramStore()
   const collapsedHubs = useDiagramStore((s) => s.collapsedHubs)
+  type DiagramViewMode = Exclude<ViewMode, 'tabular'>
+  const dvm = viewMode as DiagramViewMode
   const parseResult = useEditorStore((s) => s.parseResult)
   const [focusedTableId, setFocusedTableId] = useState<string | null>(null)
   const [layoutMenuOpen, setLayoutMenuOpen] = useState(false)
@@ -151,7 +154,7 @@ function DiagramPanelInner() {
 
   // Helper: save positions to storedLayout and persist to git.
   // Takes forViewMode explicitly to avoid stale closure captures in async callbacks.
-  const savePositions = useCallback((currentNodes: Node[], forViewMode: ViewMode) => {
+  const savePositions = useCallback((currentNodes: Node[], forViewMode: DiagramViewMode) => {
     const positions: Record<string, { x: number; y: number }> = {}
     for (const n of currentNodes) {
       positions[n.id] = { x: n.position.x, y: n.position.y }
@@ -179,7 +182,17 @@ function DiagramPanelInner() {
     }
     let stale = false
     const convert = viewMode === 'conceptual' ? parseResultToConceptualFlow : parseResultToFlow
-    const { nodes: flowNodes, edges: flowEdges } = convert(parseResult)
+    const visibleTableIds = new Set(
+      filterTablesByGroup(parseResult.tables, groupFilter).map((t) => t.id),
+    )
+    const filteredResult: ParseResult = {
+      ...parseResult,
+      tables: parseResult.tables.filter((t) => visibleTableIds.has(t.id)),
+      refs: parseResult.refs.filter(
+        (r) => visibleTableIds.has(r.fromTable) && visibleTableIds.has(r.toTable),
+      ),
+    }
+    const { nodes: flowNodes, edges: flowEdges } = convert(filteredResult)
 
     const { nodes: visibleNodes, edges: visibleEdges } =
       viewMode === 'relational'
@@ -187,7 +200,7 @@ function DiagramPanelInner() {
         : { nodes: flowNodes, edges: flowEdges }
 
     // Read storedLayout directly from store to get latest (e.g. after view toggle save)
-    const stored = useDiagramStore.getState().storedLayout?.[viewMode]
+    const stored = useDiagramStore.getState().storedLayout?.[dvm]
     if (stored && Object.keys(stored).length > 0) {
       // Apply stored positions
       const laid = visibleNodes.map((n) => {
@@ -224,12 +237,12 @@ function DiagramPanelInner() {
           setNodes(laid)
           setEdges(assignEdgeHandles(laid, visibleEdges))
           requestAnimationFrame(() => fitView({ padding: 0.2 }))
-          savePositions(laid, viewMode)
+          savePositions(laid, dvm)
         }
       })
     }
     return () => { stale = true }
-  }, [parseResult, viewMode, collapsedHubs, setNodes, setEdges, fitView]) // Note: layoutMode intentionally excluded — auto-layout only on explicit click
+  }, [parseResult, viewMode, collapsedHubs, setNodes, setEdges, fitView, groupFilter]) // Note: layoutMode intentionally excluded — auto-layout only on explicit click
 
   // Persist collapsed state when it changes
   useEffect(() => {
@@ -290,7 +303,7 @@ function DiagramPanelInner() {
   // Auto Layout with confirmation
   const handleLayoutSelect = useCallback((mode: LayoutMode) => {
     setLayoutMenuOpen(false)
-    const hasStoredPositions = storedLayout?.[viewMode] && Object.keys(storedLayout[viewMode]!).length > 0
+    const hasStoredPositions = storedLayout?.[dvm] && Object.keys(storedLayout[dvm]!).length > 0
     if (hasStoredPositions) {
       setPendingLayout(mode)
       return
@@ -300,14 +313,24 @@ function DiagramPanelInner() {
 
   const applyLayout = useCallback((mode: LayoutMode) => {
     // Clear stored positions for current view, keep other view's positions
-    const updated: StoredLayout = { ...storedLayout, [viewMode]: undefined, layoutMode: mode }
+    const updated: StoredLayout = { ...storedLayout, [dvm]: undefined, layoutMode: mode }
     setStoredLayout(updated)
     setLayoutMode(mode)
 
     // Run layout immediately
     if (!parseResult) return
     const convert = viewMode === 'conceptual' ? parseResultToConceptualFlow : parseResultToFlow
-    const { nodes: flowNodes, edges: flowEdges } = convert(parseResult)
+    const visibleTableIds = new Set(
+      filterTablesByGroup(parseResult.tables, groupFilter).map((t) => t.id),
+    )
+    const filteredResult: ParseResult = {
+      ...parseResult,
+      tables: parseResult.tables.filter((t) => visibleTableIds.has(t.id)),
+      refs: parseResult.refs.filter(
+        (r) => visibleTableIds.has(r.fromTable) && visibleTableIds.has(r.toTable),
+      ),
+    }
+    const { nodes: flowNodes, edges: flowEdges } = convert(filteredResult)
     const { nodes: visibleNodes, edges: visibleEdges } =
       viewMode === 'relational'
         ? filterCollapsedSatellites(flowNodes, flowEdges, collapsedHubs, parseResult.dv2Metadata)
@@ -322,24 +345,17 @@ function DiagramPanelInner() {
       for (const n of laid) {
         positions[n.id] = { x: n.position.x, y: n.position.y }
       }
-      const finalLayout: StoredLayout = { ...updated, [viewMode]: positions, layoutMode: mode }
+      const finalLayout: StoredLayout = { ...updated, [dvm]: positions, layoutMode: mode }
       setStoredLayout(finalLayout)
       const projectId = useProjectStore.getState().currentProjectId
       if (projectId) storage.saveLayout(projectId, finalLayout)
     })
-  }, [storedLayout, viewMode, parseResult, collapsedHubs, setStoredLayout, setLayoutMode, setNodes, setEdges, fitView])
+  }, [storedLayout, viewMode, parseResult, collapsedHubs, setStoredLayout, setLayoutMode, setNodes, setEdges, fitView, groupFilter])
 
   const handleLayoutConfirm = useCallback(() => {
     if (pendingLayout) applyLayout(pendingLayout)
     setPendingLayout(null)
   }, [pendingLayout, applyLayout])
-
-  const toggleView = useCallback(() => {
-    // Save current positions before switching so they're not lost
-    savePositions(useDiagramStore.getState().nodes, viewMode)
-    const next: ViewMode = viewMode === 'relational' ? 'conceptual' : 'relational'
-    setViewMode(next)
-  }, [viewMode, setViewMode, savePositions])
 
   // Save positions and reassign edge handles on node drag stop
   const handleNodeDragStop = useCallback((_: React.MouseEvent, _node: Node, draggedNodes: Node[]) => {
@@ -352,7 +368,7 @@ function DiagramPanelInner() {
       return pos ? { ...n, position: pos } : n
     })
     setEdges(assignEdgeHandles(updatedNodes, currentEdges))
-    savePositions(updatedNodes, useDiagramStore.getState().viewMode)
+    savePositions(updatedNodes, useDiagramStore.getState().viewMode as DiagramViewMode)
   }, [savePositions, setEdges])
 
   const handleNodeClick = useCallback((_: React.MouseEvent, node: Node) => {
@@ -389,7 +405,7 @@ function DiagramPanelInner() {
     })
     setNodes(updated)
     setEdges(assignEdgeHandles(updated, useDiagramStore.getState().edges))
-    savePositions(updated, useDiagramStore.getState().viewMode)
+    savePositions(updated, useDiagramStore.getState().viewMode as DiagramViewMode)
   }, [setNodes, setEdges, savePositions])
 
   const distributeNodes = useCallback((mode: 'spaceH' | 'spaceV' | 'centerH' | 'centerV' | 'compactH' | 'compactV') => {
@@ -447,7 +463,7 @@ function DiagramPanelInner() {
     })
     setNodes(updated)
     setEdges(assignEdgeHandles(updated, useDiagramStore.getState().edges))
-    savePositions(updated, useDiagramStore.getState().viewMode)
+    savePositions(updated, useDiagramStore.getState().viewMode as DiagramViewMode)
   }, [setNodes, setEdges, savePositions])
 
   const handleEdgeClick = useCallback((_: React.MouseEvent, edge: Edge) => {
@@ -587,16 +603,6 @@ function DiagramPanelInner() {
               </div>
             )}
           </div>
-          <button
-            onClick={toggleView}
-            className="flex items-center gap-1.5 bg-[var(--c-bg-3)] border border-[var(--c-border-s)] text-[var(--c-text-3)] hover:text-[var(--c-text-1)] text-xs px-2 py-1 rounded"
-          >
-            {viewMode === 'relational'
-              ? <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="1" width="5" height="3" rx="0.5" /><rect x="8" y="1" width="5" height="3" rx="0.5" /><rect x="1" y="6" width="5" height="3" rx="0.5" /><rect x="8" y="10" width="5" height="3" rx="0.5" /><line x1="6" y1="2.5" x2="8" y2="2.5" /><line x1="3.5" y1="4" x2="3.5" y2="6" /><line x1="6" y1="7.5" x2="8" y2="12" /></svg>
-              : <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"><circle cx="7" cy="4" r="2.5" /><rect x="1" y="9" width="4" height="2.5" rx="0.5" /><rect x="9" y="9" width="4" height="2.5" rx="0.5" /><line x1="5.5" y1="6" x2="3" y2="9" /><line x1="8.5" y1="6" x2="11" y2="9" /></svg>
-            }
-            {viewMode === 'relational' ? 'Relational' : 'Conceptual'}
-          </button>
           <div ref={browseRef} className="relative">
             <button
               onClick={() => setBrowseOpen((o) => !o)}

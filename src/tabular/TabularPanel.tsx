@@ -1,8 +1,9 @@
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import type { ColumnDef } from '@tanstack/react-table'
 import { useEditorStore } from '../store/useEditorStore'
+import { useDiagramStore } from '../store/useDiagramStore'
 import { TableGrid } from './TableGrid'
-import { filterTablesByGroup, listGroups, UNGROUPED } from './filterTablesByGroup'
+import { filterTablesByGroup } from './filterTablesByGroup'
 import type { TableInfo, DV2EntityType } from '../types'
 
 interface Row {
@@ -19,10 +20,9 @@ interface Row {
 
 export function TabularPanel() {
   const { parseResult } = useEditorStore()
-  const [groupFilter, setGroupFilter] = useState<string | null>(null)
+  const groupFilter = useDiagramStore((s) => s.groupFilter)
 
   const tables: TableInfo[] = useMemo(() => parseResult?.tables ?? [], [parseResult])
-  const groups = useMemo(() => listGroups(tables), [tables])
 
   const filteredTables = useMemo(
     () => filterTablesByGroup(tables, groupFilter),
@@ -98,24 +98,6 @@ export function TabularPanel() {
 
   return (
     <div className="w-full h-full flex flex-col bg-[var(--c-bg-1)]">
-      <div className="flex items-center gap-2 px-3 py-2 border-b border-[var(--c-border-s)]">
-        <label className="text-xs text-[var(--c-text-3)]">Group:</label>
-        <select
-          value={groupFilter ?? ''}
-          onChange={(e) => setGroupFilter(e.target.value === '' ? null : e.target.value)}
-          className="bg-[var(--c-bg-3)] border border-[var(--c-border-s)] text-[var(--c-text-1)] text-xs px-2 py-1 rounded"
-        >
-          <option value="">All groups</option>
-          {groups.map((g) => (
-            <option key={g} value={g}>
-              {g === UNGROUPED ? 'Ungrouped' : g}
-            </option>
-          ))}
-        </select>
-        <span className="text-xs text-[var(--c-text-4)] ml-auto">
-          {rows.length} {rows.length === 1 ? 'table' : 'tables'}
-        </span>
-      </div>
       <div className="flex-1 min-h-0">
         <TableGrid data={rows} columns={columns} onRowClick={handleRowClick} />
       </div>

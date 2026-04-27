@@ -97,6 +97,8 @@ function SnapGuides({ guides }: { guides: GuideLine[] }) {
 function DiagramPanelInner() {
   const { nodes, edges, setNodes, setEdges, onNodesChange, onEdgesChange, layoutMode, setLayoutMode, viewMode, setViewMode, storedLayout, setStoredLayout } = useDiagramStore()
   const collapsedHubs = useDiagramStore((s) => s.collapsedHubs)
+  type DiagramViewMode = Exclude<ViewMode, 'tabular'>
+  const dvm = viewMode as DiagramViewMode
   const parseResult = useEditorStore((s) => s.parseResult)
   const [focusedTableId, setFocusedTableId] = useState<string | null>(null)
   const [layoutMenuOpen, setLayoutMenuOpen] = useState(false)
@@ -151,7 +153,7 @@ function DiagramPanelInner() {
 
   // Helper: save positions to storedLayout and persist to git.
   // Takes forViewMode explicitly to avoid stale closure captures in async callbacks.
-  const savePositions = useCallback((currentNodes: Node[], forViewMode: ViewMode) => {
+  const savePositions = useCallback((currentNodes: Node[], forViewMode: DiagramViewMode) => {
     const positions: Record<string, { x: number; y: number }> = {}
     for (const n of currentNodes) {
       positions[n.id] = { x: n.position.x, y: n.position.y }
@@ -187,7 +189,7 @@ function DiagramPanelInner() {
         : { nodes: flowNodes, edges: flowEdges }
 
     // Read storedLayout directly from store to get latest (e.g. after view toggle save)
-    const stored = useDiagramStore.getState().storedLayout?.[viewMode]
+    const stored = useDiagramStore.getState().storedLayout?.[dvm]
     if (stored && Object.keys(stored).length > 0) {
       // Apply stored positions
       const laid = visibleNodes.map((n) => {
@@ -224,7 +226,7 @@ function DiagramPanelInner() {
           setNodes(laid)
           setEdges(assignEdgeHandles(laid, visibleEdges))
           requestAnimationFrame(() => fitView({ padding: 0.2 }))
-          savePositions(laid, viewMode)
+          savePositions(laid, dvm)
         }
       })
     }
@@ -290,7 +292,7 @@ function DiagramPanelInner() {
   // Auto Layout with confirmation
   const handleLayoutSelect = useCallback((mode: LayoutMode) => {
     setLayoutMenuOpen(false)
-    const hasStoredPositions = storedLayout?.[viewMode] && Object.keys(storedLayout[viewMode]!).length > 0
+    const hasStoredPositions = storedLayout?.[dvm] && Object.keys(storedLayout[dvm]!).length > 0
     if (hasStoredPositions) {
       setPendingLayout(mode)
       return
@@ -300,7 +302,7 @@ function DiagramPanelInner() {
 
   const applyLayout = useCallback((mode: LayoutMode) => {
     // Clear stored positions for current view, keep other view's positions
-    const updated: StoredLayout = { ...storedLayout, [viewMode]: undefined, layoutMode: mode }
+    const updated: StoredLayout = { ...storedLayout, [dvm]: undefined, layoutMode: mode }
     setStoredLayout(updated)
     setLayoutMode(mode)
 
@@ -322,7 +324,7 @@ function DiagramPanelInner() {
       for (const n of laid) {
         positions[n.id] = { x: n.position.x, y: n.position.y }
       }
-      const finalLayout: StoredLayout = { ...updated, [viewMode]: positions, layoutMode: mode }
+      const finalLayout: StoredLayout = { ...updated, [dvm]: positions, layoutMode: mode }
       setStoredLayout(finalLayout)
       const projectId = useProjectStore.getState().currentProjectId
       if (projectId) storage.saveLayout(projectId, finalLayout)
@@ -335,8 +337,9 @@ function DiagramPanelInner() {
   }, [pendingLayout, applyLayout])
 
   const toggleView = useCallback(() => {
+    if (viewMode === 'tabular') return
     // Save current positions before switching so they're not lost
-    savePositions(useDiagramStore.getState().nodes, viewMode)
+    savePositions(useDiagramStore.getState().nodes, viewMode as DiagramViewMode)
     const next: ViewMode = viewMode === 'relational' ? 'conceptual' : 'relational'
     setViewMode(next)
   }, [viewMode, setViewMode, savePositions])
@@ -352,7 +355,7 @@ function DiagramPanelInner() {
       return pos ? { ...n, position: pos } : n
     })
     setEdges(assignEdgeHandles(updatedNodes, currentEdges))
-    savePositions(updatedNodes, useDiagramStore.getState().viewMode)
+    savePositions(updatedNodes, useDiagramStore.getState().viewMode as DiagramViewMode)
   }, [savePositions, setEdges])
 
   const handleNodeClick = useCallback((_: React.MouseEvent, node: Node) => {
@@ -389,7 +392,7 @@ function DiagramPanelInner() {
     })
     setNodes(updated)
     setEdges(assignEdgeHandles(updated, useDiagramStore.getState().edges))
-    savePositions(updated, useDiagramStore.getState().viewMode)
+    savePositions(updated, useDiagramStore.getState().viewMode as DiagramViewMode)
   }, [setNodes, setEdges, savePositions])
 
   const distributeNodes = useCallback((mode: 'spaceH' | 'spaceV' | 'centerH' | 'centerV' | 'compactH' | 'compactV') => {
@@ -447,7 +450,7 @@ function DiagramPanelInner() {
     })
     setNodes(updated)
     setEdges(assignEdgeHandles(updated, useDiagramStore.getState().edges))
-    savePositions(updated, useDiagramStore.getState().viewMode)
+    savePositions(updated, useDiagramStore.getState().viewMode as DiagramViewMode)
   }, [setNodes, setEdges, savePositions])
 
   const handleEdgeClick = useCallback((_: React.MouseEvent, edge: Edge) => {

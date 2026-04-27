@@ -3,7 +3,7 @@ import { type Node, type Edge, type NodeChange, type EdgeChange, applyNodeChange
 import type { StoredLayout } from '../types'
 
 export type LayoutMode = 'spread' | 'dense'
-export type ViewMode = 'relational' | 'conceptual'
+export type ViewMode = 'relational' | 'conceptual' | 'tabular'
 
 interface DiagramState {
   nodes: Node[]

@@ -46,17 +46,17 @@ function Icon({ mode }: { mode: ViewMode }) {
 export function ViewModeSegmented() {
   const { viewMode, setViewMode } = useDiagramStore()
   return (
-    <div className="inline-flex items-center bg-[var(--c-bg-3)] border border-[var(--c-border-s)] rounded overflow-hidden">
+    <div className="inline-flex items-center bg-[var(--c-bg-2)] border border-[var(--c-border-s)] rounded overflow-hidden">
       {ORDER.map((mode, i) => {
         const active = mode === viewMode
         return (
           <button
             key={mode}
             onClick={() => setViewMode(mode)}
-            className={`flex items-center gap-1.5 text-xs px-2 py-1 transition-colors ${
+            className={`flex items-center gap-1.5 text-xs px-2.5 py-1 transition-colors ${
               active
-                ? 'bg-[var(--c-bg-1)] text-[var(--c-text-1)]'
-                : 'text-[var(--c-text-3)] hover:text-[var(--c-text-1)]'
+                ? 'bg-[var(--c-bg-3)] text-[var(--c-text-1)] font-semibold shadow-sm'
+                : 'text-[var(--c-text-3)] hover:text-[var(--c-text-1)] hover:bg-[var(--c-bg-3)]/40'
             } ${i > 0 ? 'border-l border-[var(--c-border-s)]' : ''}`}
           >
             <Icon mode={mode} />

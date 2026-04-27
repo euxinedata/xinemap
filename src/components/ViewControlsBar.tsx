@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { useEditorStore } from '../store/useEditorStore'
 import { useDiagramStore } from '../store/useDiagramStore'
-import { ViewModeCycleButton } from './ViewModeCycleButton'
+import { ViewModeSegmented } from './ViewModeSegmented'
 import { filterTablesByGroup, listGroups, UNGROUPED } from '../tabular/filterTablesByGroup'
 
 export function ViewControlsBar() {
@@ -34,7 +34,7 @@ export function ViewControlsBar() {
         {visibleCount} {visibleCount === 1 ? 'table' : 'tables'}
       </span>
       <div className="ml-auto">
-        <ViewModeCycleButton />
+        <ViewModeSegmented />
       </div>
     </div>
   )

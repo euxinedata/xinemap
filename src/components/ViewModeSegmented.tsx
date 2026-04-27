@@ -43,17 +43,27 @@ function Icon({ mode }: { mode: ViewMode }) {
   )
 }
 
-export function ViewModeCycleButton() {
+export function ViewModeSegmented() {
   const { viewMode, setViewMode } = useDiagramStore()
-  const next = ORDER[(ORDER.indexOf(viewMode) + 1) % ORDER.length]
   return (
-    <button
-      onClick={() => setViewMode(next)}
-      title={`Switch to ${LABEL[next]}`}
-      className="flex items-center gap-1.5 bg-[var(--c-bg-3)] border border-[var(--c-border-s)] text-[var(--c-text-3)] hover:text-[var(--c-text-1)] text-xs px-2 py-1 rounded"
-    >
-      <Icon mode={viewMode} />
-      {LABEL[viewMode]}
-    </button>
+    <div className="inline-flex items-center bg-[var(--c-bg-3)] border border-[var(--c-border-s)] rounded overflow-hidden">
+      {ORDER.map((mode, i) => {
+        const active = mode === viewMode
+        return (
+          <button
+            key={mode}
+            onClick={() => setViewMode(mode)}
+            className={`flex items-center gap-1.5 text-xs px-2 py-1 transition-colors ${
+              active
+                ? 'bg-[var(--c-bg-1)] text-[var(--c-text-1)]'
+                : 'text-[var(--c-text-3)] hover:text-[var(--c-text-1)]'
+            } ${i > 0 ? 'border-l border-[var(--c-border-s)]' : ''}`}
+          >
+            <Icon mode={mode} />
+            {LABEL[mode]}
+          </button>
+        )
+      })}
+    </div>
   )
 }

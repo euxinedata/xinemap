@@ -23,6 +23,7 @@ import { CommandPalette } from '../components/CommandPalette'
 import { FocusModal } from './FocusModal'
 import { ConfirmDialog } from '../components/InlineDialog'
 import { computeSnap, type GuideLine } from './snapAlign'
+import { ViewModeCycleButton } from '../components/ViewModeCycleButton'
 
 const nodeTypes = {
   tableNode: TableNode,
@@ -95,7 +96,7 @@ function SnapGuides({ guides }: { guides: GuideLine[] }) {
 }
 
 function DiagramPanelInner() {
-  const { nodes, edges, setNodes, setEdges, onNodesChange, onEdgesChange, layoutMode, setLayoutMode, viewMode, setViewMode, storedLayout, setStoredLayout } = useDiagramStore()
+  const { nodes, edges, setNodes, setEdges, onNodesChange, onEdgesChange, layoutMode, setLayoutMode, viewMode, storedLayout, setStoredLayout } = useDiagramStore()
   const collapsedHubs = useDiagramStore((s) => s.collapsedHubs)
   type DiagramViewMode = Exclude<ViewMode, 'tabular'>
   const dvm = viewMode as DiagramViewMode
@@ -335,14 +336,6 @@ function DiagramPanelInner() {
     if (pendingLayout) applyLayout(pendingLayout)
     setPendingLayout(null)
   }, [pendingLayout, applyLayout])
-
-  const toggleView = useCallback(() => {
-    if (viewMode === 'tabular') return
-    // Save current positions before switching so they're not lost
-    savePositions(useDiagramStore.getState().nodes, viewMode as DiagramViewMode)
-    const next: ViewMode = viewMode === 'relational' ? 'conceptual' : 'relational'
-    setViewMode(next)
-  }, [viewMode, setViewMode, savePositions])
 
   // Save positions and reassign edge handles on node drag stop
   const handleNodeDragStop = useCallback((_: React.MouseEvent, _node: Node, draggedNodes: Node[]) => {
@@ -590,16 +583,7 @@ function DiagramPanelInner() {
               </div>
             )}
           </div>
-          <button
-            onClick={toggleView}
-            className="flex items-center gap-1.5 bg-[var(--c-bg-3)] border border-[var(--c-border-s)] text-[var(--c-text-3)] hover:text-[var(--c-text-1)] text-xs px-2 py-1 rounded"
-          >
-            {viewMode === 'relational'
-              ? <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="1" width="5" height="3" rx="0.5" /><rect x="8" y="1" width="5" height="3" rx="0.5" /><rect x="1" y="6" width="5" height="3" rx="0.5" /><rect x="8" y="10" width="5" height="3" rx="0.5" /><line x1="6" y1="2.5" x2="8" y2="2.5" /><line x1="3.5" y1="4" x2="3.5" y2="6" /><line x1="6" y1="7.5" x2="8" y2="12" /></svg>
-              : <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"><circle cx="7" cy="4" r="2.5" /><rect x="1" y="9" width="4" height="2.5" rx="0.5" /><rect x="9" y="9" width="4" height="2.5" rx="0.5" /><line x1="5.5" y1="6" x2="3" y2="9" /><line x1="8.5" y1="6" x2="11" y2="9" /></svg>
-            }
-            {viewMode === 'relational' ? 'Relational' : 'Conceptual'}
-          </button>
+          <ViewModeCycleButton />
           <div ref={browseRef} className="relative">
             <button
               onClick={() => setBrowseOpen((o) => !o)}

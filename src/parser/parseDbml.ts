@@ -1,5 +1,6 @@
 import { Parser } from '@dbml/core'
-import type { ParseResult, StickyNoteInfo, DV2Metadata, DV2EntityType, DV2ColumnRole, ProjectMeta, IndexInfo, CheckInfo } from '../types'
+import type { ParseResult, StickyNoteInfo, DV2Metadata, DV2ColumnRole, ProjectMeta, IndexInfo, CheckInfo } from '../types'
+import { entityTypeFromNote } from './entityTypeFromNote'
 
 function parseDV2Role(note: string | undefined): DV2ColumnRole | undefined {
   if (!note) return undefined
@@ -8,25 +9,6 @@ function parseDV2Role(note: string | undefined): DV2ColumnRole | undefined {
   if (note.includes('**mak**')) return 'mak'
   if (note.includes('**driving key**')) return 'dk'
   return undefined
-}
-
-function entityTypeFromPartials(partials: any[]): DV2EntityType | null {
-  for (const p of partials) {
-    const name = (p.name ?? '').toLowerCase()
-    if (name === 'hub') return 'hub'
-    if (name === 'satellite') return 'satellite'
-    if (name === 'link') return 'link'
-    if (name.startsWith('reference')) return 'reference'
-  }
-  return null
-}
-
-function entityTypeFromGroup(group: string): DV2EntityType {
-  const g = group.toLowerCase()
-  if (g.startsWith('hub')) return 'hub'
-  if (g.startsWith('sat')) return 'satellite'
-  if (g.startsWith('link')) return 'link'
-  return 'reference'
 }
 
 export function parseDbml(source: string): ParseResult {
@@ -49,19 +31,11 @@ export function parseDbml(source: string): ParseResult {
       }
     }
 
-    // Store entity type hints from partials (keyed by tableId)
-    const entityHintMap = new Map<string, DV2EntityType>()
-
     const tables = exported.schemas.flatMap((schema, schemaIdx) => {
       const schemaName = schema.name || 'public'
       const rawTables = (database as any).schemas?.[schemaIdx]?.tables ?? []
       return schema.tables.map((table, tableIdx) => {
         const tableId = `${schemaName}.${table.name}`
-
-        // Extract entity type from TablePartial injections
-        const partials = (table as any).partials ?? []
-        const hint = entityTypeFromPartials(partials)
-        if (hint) entityHintMap.set(tableId, hint)
 
         const tableLine = rawTables[tableIdx]?.token?.start?.line
         const rawFields = rawTables[tableIdx]?.fields ?? []
@@ -197,13 +171,14 @@ export function parseDbml(source: string): ParseResult {
     }))
 
     // Build DV2 metadata — two-pass approach
-    // Pass 1: classify all tables (partials take priority over groups)
+    // Pass 1: classify tables that carry an explicit note marker (**HUB** / **SAT** / **LNK** / **REF**).
+    // Tables without a marker are not classified and have no entry in dv2Metadata.
     const dv2Metadata = new Map<string, DV2Metadata>()
     for (const table of tables) {
-      const hint = entityHintMap.get(table.id)
-      const group = table.group ?? ''
-      const entityType = hint ?? entityTypeFromGroup(group)
-      dv2Metadata.set(table.id, { entityType, parentHubs: [], linkedHubs: [] })
+      const entityType = entityTypeFromNote(table.note)
+      if (entityType !== null) {
+        dv2Metadata.set(table.id, { entityType, parentHubs: [], linkedHubs: [] })
+      }
     }
 
     // Pass 2: resolve relationships using classified types
@@ -211,7 +186,8 @@ export function parseDbml(source: string): ParseResult {
     // and the "*" side is endpoints[1], regardless of which table defined the inline ref.
     // We must check both directions.
     for (const table of tables) {
-      const m = dv2Metadata.get(table.id)!
+      const m = dv2Metadata.get(table.id)
+      if (!m) continue
       if (m.entityType === 'satellite') {
         for (const ref of refs) {
           const other = ref.fromTable === table.id ? ref.toTable

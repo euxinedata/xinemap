@@ -9,6 +9,7 @@ function applyTheme(isDark: boolean) {
 // Initialize from localStorage or default to dark
 const stored = localStorage.getItem(STORAGE_KEY)
 const initialIsDark = stored ? stored === 'dark' : true
+applyTheme(initialIsDark)
 
 interface ThemeState {
   isDark: boolean

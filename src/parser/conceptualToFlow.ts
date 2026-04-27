@@ -1,13 +1,11 @@
 import type { Node, Edge } from '@xyflow/react'
-import type { ParseResult } from '../types'
+import type { DV2EntityType, ParseResult } from '../types'
 import { dv2EdgeColor } from '../diagram/dv2Colors'
 
-function nodeTypeFromGroup(group?: string): string {
-  if (!group) return 'conceptNode'
-  const g = group.toLowerCase()
-  if (g.startsWith('hub')) return 'hubNode'
-  if (g.startsWith('sat')) return 'satelliteNode'
-  if (g.startsWith('link')) return 'linkNode'
+function nodeTypeFromEntity(entityType: DV2EntityType | undefined): string {
+  if (entityType === 'hub') return 'hubNode'
+  if (entityType === 'satellite') return 'satelliteNode'
+  if (entityType === 'link') return 'linkNode'
   return 'conceptNode'
 }
 
@@ -16,9 +14,10 @@ export function parseResultToConceptualFlow(result: ParseResult): { nodes: Node[
   const edges: Edge[] = []
 
   for (const table of result.tables) {
+    const entityType = result.dv2Metadata.get(table.id)?.entityType
     nodes.push({
       id: table.id,
-      type: nodeTypeFromGroup(table.group),
+      type: nodeTypeFromEntity(entityType),
       position: { x: 0, y: 0 },
       data: { label: table.name, line: table.line },
     })

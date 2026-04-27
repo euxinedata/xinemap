@@ -55,8 +55,8 @@ export function ViewModeSegmented() {
             onClick={() => setViewMode(mode)}
             className={`flex items-center gap-1.5 text-xs px-2.5 py-1 transition-colors ${
               active
-                ? 'bg-[var(--c-bg-3)] text-[var(--c-text-1)] font-semibold shadow-sm'
-                : 'text-[var(--c-text-3)] hover:text-[var(--c-text-1)] hover:bg-[var(--c-bg-3)]/40'
+                ? 'bg-[var(--c-text-1)] text-[var(--c-bg-1)] font-semibold'
+                : 'text-[var(--c-text-3)] hover:text-[var(--c-text-1)] hover:bg-[var(--c-bg-3)]'
             } ${i > 0 ? 'border-l border-[var(--c-border-s)]' : ''}`}
           >
             <Icon mode={mode} />

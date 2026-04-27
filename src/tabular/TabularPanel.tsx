@@ -21,7 +21,7 @@ export function TabularPanel() {
   const { parseResult } = useEditorStore()
   const [groupFilter, setGroupFilter] = useState<string | null>(null)
 
-  const tables: TableInfo[] = parseResult?.tables ?? []
+  const tables: TableInfo[] = useMemo(() => parseResult?.tables ?? [], [parseResult])
   const groups = useMemo(() => listGroups(tables), [tables])
 
   const filteredTables = useMemo(

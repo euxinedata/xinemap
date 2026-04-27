@@ -8,7 +8,8 @@ import { parseResultToFlow } from '../parser/dbmlToFlow'
 import { parseResultToConceptualFlow } from '../parser/conceptualToFlow'
 import { layoutNodes } from './layoutEngine'
 import * as storage from '../persistence/gitStorage'
-import type { DV2Metadata, StoredLayout } from '../types'
+import type { DV2Metadata, StoredLayout, ParseResult } from '../types'
+import { filterTablesByGroup } from '../tabular/filterTablesByGroup'
 import { assignEdgeHandles } from './edgeHandles'
 import { DV2_COLORS } from './dv2Colors'
 import { TableNode } from './TableNode'
@@ -23,7 +24,6 @@ import { CommandPalette } from '../components/CommandPalette'
 import { FocusModal } from './FocusModal'
 import { ConfirmDialog } from '../components/InlineDialog'
 import { computeSnap, type GuideLine } from './snapAlign'
-import { ViewModeCycleButton } from '../components/ViewModeCycleButton'
 
 const nodeTypes = {
   tableNode: TableNode,
@@ -96,7 +96,7 @@ function SnapGuides({ guides }: { guides: GuideLine[] }) {
 }
 
 function DiagramPanelInner() {
-  const { nodes, edges, setNodes, setEdges, onNodesChange, onEdgesChange, layoutMode, setLayoutMode, viewMode, storedLayout, setStoredLayout } = useDiagramStore()
+  const { nodes, edges, setNodes, setEdges, onNodesChange, onEdgesChange, layoutMode, setLayoutMode, viewMode, storedLayout, setStoredLayout, groupFilter } = useDiagramStore()
   const collapsedHubs = useDiagramStore((s) => s.collapsedHubs)
   type DiagramViewMode = Exclude<ViewMode, 'tabular'>
   const dvm = viewMode as DiagramViewMode
@@ -182,7 +182,17 @@ function DiagramPanelInner() {
     }
     let stale = false
     const convert = viewMode === 'conceptual' ? parseResultToConceptualFlow : parseResultToFlow
-    const { nodes: flowNodes, edges: flowEdges } = convert(parseResult)
+    const visibleTableIds = new Set(
+      filterTablesByGroup(parseResult.tables, groupFilter).map((t) => t.id),
+    )
+    const filteredResult: ParseResult = {
+      ...parseResult,
+      tables: parseResult.tables.filter((t) => visibleTableIds.has(t.id)),
+      refs: parseResult.refs.filter(
+        (r) => visibleTableIds.has(r.fromTable) && visibleTableIds.has(r.toTable),
+      ),
+    }
+    const { nodes: flowNodes, edges: flowEdges } = convert(filteredResult)
 
     const { nodes: visibleNodes, edges: visibleEdges } =
       viewMode === 'relational'
@@ -232,7 +242,7 @@ function DiagramPanelInner() {
       })
     }
     return () => { stale = true }
-  }, [parseResult, viewMode, collapsedHubs, setNodes, setEdges, fitView]) // Note: layoutMode intentionally excluded — auto-layout only on explicit click
+  }, [parseResult, viewMode, collapsedHubs, setNodes, setEdges, fitView, groupFilter]) // Note: layoutMode intentionally excluded — auto-layout only on explicit click
 
   // Persist collapsed state when it changes
   useEffect(() => {
@@ -310,7 +320,17 @@ function DiagramPanelInner() {
     // Run layout immediately
     if (!parseResult) return
     const convert = viewMode === 'conceptual' ? parseResultToConceptualFlow : parseResultToFlow
-    const { nodes: flowNodes, edges: flowEdges } = convert(parseResult)
+    const visibleTableIds = new Set(
+      filterTablesByGroup(parseResult.tables, groupFilter).map((t) => t.id),
+    )
+    const filteredResult: ParseResult = {
+      ...parseResult,
+      tables: parseResult.tables.filter((t) => visibleTableIds.has(t.id)),
+      refs: parseResult.refs.filter(
+        (r) => visibleTableIds.has(r.fromTable) && visibleTableIds.has(r.toTable),
+      ),
+    }
+    const { nodes: flowNodes, edges: flowEdges } = convert(filteredResult)
     const { nodes: visibleNodes, edges: visibleEdges } =
       viewMode === 'relational'
         ? filterCollapsedSatellites(flowNodes, flowEdges, collapsedHubs, parseResult.dv2Metadata)
@@ -330,7 +350,7 @@ function DiagramPanelInner() {
       const projectId = useProjectStore.getState().currentProjectId
       if (projectId) storage.saveLayout(projectId, finalLayout)
     })
-  }, [storedLayout, viewMode, parseResult, collapsedHubs, setStoredLayout, setLayoutMode, setNodes, setEdges, fitView])
+  }, [storedLayout, viewMode, parseResult, collapsedHubs, setStoredLayout, setLayoutMode, setNodes, setEdges, fitView, groupFilter])
 
   const handleLayoutConfirm = useCallback(() => {
     if (pendingLayout) applyLayout(pendingLayout)
@@ -583,7 +603,6 @@ function DiagramPanelInner() {
               </div>
             )}
           </div>
-          <ViewModeCycleButton />
           <div ref={browseRef} className="relative">
             <button
               onClick={() => setBrowseOpen((o) => !o)}

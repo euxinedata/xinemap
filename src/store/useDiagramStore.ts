@@ -10,6 +10,7 @@ interface DiagramState {
   edges: Edge[]
   layoutMode: LayoutMode
   viewMode: ViewMode
+  groupFilter: string | null
   searchOpen: boolean
   collapsedHubs: Set<string>
   storedLayout: StoredLayout | null
@@ -17,6 +18,7 @@ interface DiagramState {
   setEdges: (edges: Edge[]) => void
   setLayoutMode: (mode: LayoutMode) => void
   setViewMode: (mode: ViewMode) => void
+  setGroupFilter: (groupFilter: string | null) => void
   setSearchOpen: (open: boolean) => void
   toggleHubCollapse: (hubId: string) => void
   setCollapsedHubs: (ids: Set<string>) => void
@@ -30,6 +32,7 @@ export const useDiagramStore = create<DiagramState>()((set) => ({
   edges: [],
   layoutMode: 'spread' as LayoutMode,
   viewMode: 'relational' as ViewMode,
+  groupFilter: null,
   searchOpen: false,
   collapsedHubs: new Set<string>(),
   storedLayout: null,
@@ -37,6 +40,7 @@ export const useDiagramStore = create<DiagramState>()((set) => ({
   setEdges: (edges) => set({ edges }),
   setLayoutMode: (layoutMode) => set({ layoutMode }),
   setViewMode: (viewMode) => set({ viewMode }),
+  setGroupFilter: (groupFilter) => set({ groupFilter }),
   setSearchOpen: (searchOpen) => set({ searchOpen }),
   toggleHubCollapse: (hubId) => set((state) => {
     const next = new Set(state.collapsedHubs)

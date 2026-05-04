@@ -10,12 +10,15 @@ import { ViewControlsBar } from './components/ViewControlsBar'
 import { useParseEffect } from './hooks/useParseEffect'
 import { useProjectStore } from './store/useProjectStore'
 import { useDiagramStore } from './store/useDiagramStore'
+import { useUiStore } from './store/useUiStore'
+import { ChangelogPage } from './components/ChangelogPage'
 
 export default function App() {
   useParseEffect()
   const [editorVisible, setEditorVisible] = useState(true)
   const toggleEditor = useCallback(() => setEditorVisible((v) => !v), [])
   const viewMode = useDiagramStore((s) => s.viewMode)
+  const activePage = useUiStore((s) => s.activePage)
 
   // Auto-load the last opened project on startup
   useEffect(() => {
@@ -28,6 +31,15 @@ export default function App() {
       if (target) store.openProject(target.id)
     })
   }, [])
+  if (activePage === 'changelog') {
+    return (
+      <>
+        <Toolbar />
+        <ChangelogPage />
+        <StatusBar />
+      </>
+    )
+  }
   return (
     <>
       <Toolbar />

@@ -8,6 +8,8 @@ import { useProjectStore } from '../store/useProjectStore'
 import { useEditorStore } from '../store/useEditorStore'
 import { useThemeStore } from '../store/useThemeStore'
 import { importer } from '@dbml/core'
+import { version } from '../version'
+import { useUiStore } from '../store/useUiStore'
 
 const btnClass = 'flex items-center gap-1.5 text-sm text-[var(--c-text-3)] hover:text-[var(--c-text-1)] px-3 py-1'
 
@@ -117,6 +119,10 @@ export function Toolbar() {
         )}
         <input ref={fileRef} type="file" accept=".dbml,.sql" className="hidden" onChange={handleFileChange} />
       </div>
+      <button onClick={() => useUiStore.getState().setPage('changelog')} className={btnClass}>
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"><path d="M3 1h6l3 3v9a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1z" /><polyline points="9 1 9 4 12 4" /><line x1="4.5" y1="7" x2="9.5" y2="7" /><line x1="4.5" y1="9.5" x2="9.5" y2="9.5" /></svg>
+        Changelog
+      </button>
       <button onClick={toggleTheme} className={btnClass}>
         {isDark
           ? <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"><circle cx="7" cy="7" r="3" /><line x1="7" y1="0.5" x2="7" y2="2" /><line x1="7" y1="12" x2="7" y2="13.5" /><line x1="0.5" y1="7" x2="2" y2="7" /><line x1="12" y1="7" x2="13.5" y2="7" /><line x1="2.4" y1="2.4" x2="3.5" y2="3.5" /><line x1="10.5" y1="10.5" x2="11.6" y2="11.6" /><line x1="2.4" y1="11.6" x2="3.5" y2="10.5" /><line x1="10.5" y1="3.5" x2="11.6" y2="2.4" /></svg>
@@ -124,12 +130,24 @@ export function Toolbar() {
         }
         {isDark ? 'Light' : 'Dark'}
       </button>
-      <span className="ml-auto text-xs text-[var(--c-text-4)]">
-        {parseResult?.projectMeta?.name
+      {(() => {
+        const projectName = parseResult?.projectMeta?.name
           ?? (currentProjectId
             ? useProjectStore.getState().projects.find((p) => p.id === currentProjectId)?.name
-            : undefined)}
-      </span>
+            : undefined)
+        return (
+          <div className="ml-auto flex items-center text-xs text-[var(--c-text-4)]">
+            {projectName && <span>{projectName}</span>}
+            {projectName && version.commit && <span className="mx-2">|</span>}
+            {version.commit && (
+              <span>
+                <span className="font-mono">{version.commit}</span>
+                {version.date && <> · {version.date}</>}
+              </span>
+            )}
+          </div>
+        )
+      })()}
       <FileDialog isOpen={fileOpen} onClose={() => setFileOpen(false)} />
       <HistoryDialog isOpen={historyOpen} onClose={() => setHistoryOpen(false)} />
       <SourceConfigDialog isOpen={sourcesOpen} onClose={() => setSourcesOpen(false)} />

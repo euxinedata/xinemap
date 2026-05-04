@@ -114,3 +114,73 @@ body {
 .react-flow__edge:hover path {
   stroke-width: 2.5;
 }
+
+/* Changelog page typography */
+.prose-changelog {
+  color: var(--c-text-2);
+  line-height: 1.65;
+}
+.prose-changelog h1 {
+  font-size: 1.6rem;
+  font-weight: 600;
+  color: var(--c-text-1);
+  margin: 0 0 1.25rem;
+}
+.prose-changelog h2 {
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: var(--c-text-1);
+  margin: 1.75rem 0 0.6rem;
+  padding-bottom: 0.3rem;
+  border-bottom: 1px solid var(--c-border);
+}
+.prose-changelog h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--c-text-1);
+  margin: 1.25rem 0 0.5rem;
+}
+.prose-changelog p {
+  margin: 0.5rem 0;
+}
+.prose-changelog ul {
+  list-style: disc;
+  padding-left: 1.4rem;
+  margin: 0.5rem 0;
+}
+.prose-changelog li {
+  margin: 0.2rem 0;
+}
+.prose-changelog a {
+  color: var(--c-accent);
+  text-decoration: underline;
+}
+.prose-changelog code {
+  font-family: 'Geist Mono', monospace;
+  font-size: 0.9em;
+  background: var(--c-bg-3);
+  padding: 0.1em 0.35em;
+  border-radius: 3px;
+}
+.prose-changelog pre {
+  background: var(--c-bg-3);
+  border: 1px solid var(--c-border);
+  border-radius: 4px;
+  padding: 0.75rem 1rem;
+  overflow-x: auto;
+}
+.prose-changelog pre code {
+  background: transparent;
+  padding: 0;
+}
+.prose-changelog hr {
+  border: 0;
+  border-top: 1px solid var(--c-border);
+  margin: 1.5rem 0;
+}
+.prose-changelog blockquote {
+  border-left: 3px solid var(--c-border-s);
+  padding-left: 1rem;
+  color: var(--c-text-3);
+  margin: 0.75rem 0;
+}
